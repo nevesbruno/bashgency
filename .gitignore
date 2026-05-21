@@ -1,0 +1,7 @@
+# Segredos e estado local (runtime em ~/.config/ai-alias)
+env
+*.env
+.env
+
+# Backups gerados em dev
+backups/

@@ -1,14 +1,7 @@
 <p align="center">
-  <table cellpadding="0" cellspacing="16" border="0" align="center">
-    <tr>
-      <td valign="middle">
-        <img src="docs/bashgency-logo.svg" alt="Bashgency icon — terminal cursor agent with animated eyes" width="300">
-      </td>
-      <td valign="middle">
-        <img src="docs/bashgency-wordmark.svg" alt="bashgency — your shell agency" width="420">
-      </td>
-    </tr>
-  </table>
+  <img src="docs/bashgency-logo.svg" alt="Bashgency icon — terminal cursor agent with animated eyes" width="340">
+  <br>
+  <img src="docs/bashgency-wordmark.svg" alt="bashgency — your shell agency" width="85%">
 </p>
 
 <p align="center">

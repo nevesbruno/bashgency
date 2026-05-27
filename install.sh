@@ -12,6 +12,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="${BASHGENCY_DIR:-$HOME/.config/bashgency}"
 MODULE_PATH="$ROOT/modules/bashgency-cli.sh"
 
+# Detect if being sourced (source install.sh) vs executed (./install.sh)
+# In bash: BASH_SOURCE[0] != $0 means sourced
+# In zsh: sourced -> $0 is file path; executed -> $0 is shell name
+IS_SOURCED=false
+if [ -n "${BASH_SOURCE[0]-}" ]; then
+    [ "${BASH_SOURCE[0]}" != "$0" ] && IS_SOURCED=true || true
+else
+    case "$0" in -zsh|zsh|bash|-bash|sh|-sh) ;; *) IS_SOURCED=true ;; esac
+fi
+
 # ---------------------------------------------------------------------------
 # Colors & helpers
 # ---------------------------------------------------------------------------
@@ -223,13 +233,21 @@ divider
 # ---------------------------------------------------------------------------
 # Source in current session
 # ---------------------------------------------------------------------------
-if [ -f "$MODULE_PATH" ]; then
-    source "$MODULE_PATH"
-    info "Sourced bashgency in current shell"
-fi
-if [ -f "$CONFIG_DIR/aliases.sh" ]; then
-    source "$CONFIG_DIR/aliases.sh"
-    info "Sourced aliases in current shell"
+if [ "$IS_SOURCED" = true ]; then
+    # Shell inherits the functions — source directly into it
+    if [ -f "$MODULE_PATH" ]; then
+        source "$MODULE_PATH"
+        info "Sourced bashgency in current shell"
+    fi
+    if [ -f "$CONFIG_DIR/aliases.sh" ]; then
+        source "$CONFIG_DIR/aliases.sh"
+        info "Sourced aliases in current shell"
+    fi
+else
+    # Executed as sub-shell — can't affect parent
+    info "bashgency installed to disk"
+    sub "Run this to activate in the current shell:"
+    sub "  ${BOLD}source $MODULE_PATH${RESET}"
 fi
 divider
 

@@ -4,7 +4,7 @@ set -euo pipefail
 # Bashgency Installer
 # Steps:
 #   1. Create config directory structure
-#   2. Copy env.example (if not exists)
+#   2. Ask and write DEEPSEEK_API_KEY
 #   3. Create default aliases.sh (if needed)
 #   4. Add source line to shell config (desired)
 
@@ -41,43 +41,70 @@ divider() { printf "  ${SEP}\n"; }
 printf "\n"
 printf "  ${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${RESET}\n"
 printf "  ${BOLD}${CYAN}║${RESET}                 ${BOLD}Bashgency${RESET}                  ${CYAN}║${RESET}\n"
-printf "  ${BOLD}${CYAN}║${RESET}         AI-powered shell code generator        ${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}         AI-powered shell code generator          ${BOLD}${CYAN}║${RESET}\n"
 printf "  ${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${RESET}\n"
 printf "\n"
 
 # ---------------------------------------------------------------------------
 # Step 1/4 — Config directory structure
 # ---------------------------------------------------------------------------
-heading "Step 1/4  ──  Config directory"
+heading "> 1/4  ---  Config directory"
 divider
 
 mkdir -p "$CONFIG_DIR/modules" "$CONFIG_DIR/backups"
 info "Created ${BOLD}$CONFIG_DIR${RESET}"
-sub "  ├─ modules/"
-sub "  └─ backups/"
+sub "  |- modules/"
+sub "  '- backups/"
 divider
 
 # ---------------------------------------------------------------------------
-# Step 2/4 — Environment file
+# Step 2/4 — API key
 # ---------------------------------------------------------------------------
-heading "Step 2/4  ──  API key setup"
+heading "> 2/4  ---  API key"
 divider
+
+needs_key=false
 
 if [ ! -f "$CONFIG_DIR/env" ]; then
     cp "$ROOT/env.example" "$CONFIG_DIR/env"
     chmod 600 "$CONFIG_DIR/env"
     info "Created ${BOLD}$CONFIG_DIR/env${RESET}"
-    warn "Don't forget to add your ${BOLD}DEEPSEEK_API_KEY${RESET}"
-    sub "  Edit: $CONFIG_DIR/env"
+    needs_key=true
 else
-    warn "${BOLD}$CONFIG_DIR/env${RESET} already exists  (not overwritten)"
+    warn "${BOLD}$CONFIG_DIR/env${RESET} already exists"
+    current_key=$(grep -E '^DEEPSEEK_API_KEY=' "$CONFIG_DIR/env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')
+    if [ -z "$current_key" ] || [ "$current_key" = "sk-your-key-here" ]; then
+        needs_key=true
+    else
+        info "DEEPSEEK_API_KEY already set"
+    fi
+fi
+
+if [ "$needs_key" = true ]; then
+    if [ -t 0 ]; then
+        printf "\n"
+        printf "  ${CYAN}?${RESET} Enter your DeepSeek API key (${DIM}sk-...${RESET}): "
+        read -r user_key </dev/tty 2>/dev/null || read -r user_key
+        user_key="$(echo "$user_key" | tr -d '[:space:]')"
+    else
+        user_key=""
+    fi
+
+    if [ -n "$user_key" ]; then
+        # Replace the key in the env file
+        sed -i 's|^DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY="'"$user_key"'"|' "$CONFIG_DIR/env"
+        chmod 600 "$CONFIG_DIR/env"
+        info "DEEPSEEK_API_KEY saved to ${BOLD}$CONFIG_DIR/env${RESET}"
+    else
+        warn "No key entered. Edit ${BOLD}$CONFIG_DIR/env${RESET} later to add DEEPSEEK_API_KEY"
+    fi
 fi
 divider
 
 # ---------------------------------------------------------------------------
 # Step 3/4 — Default aliases file
 # ---------------------------------------------------------------------------
-heading "Step 3/4  ──  Aliases destination"
+heading "> 3/4  ---  Aliases destination"
 divider
 
 if ! grep -q '^BASHGENCY_TARGET=' "$CONFIG_DIR/env" 2>/dev/null; then
@@ -141,7 +168,7 @@ add_source_block() {
     info "Added Bashgency source lines to ${BOLD}$file${RESET}"
 }
 
-heading "Step 4/4  ──  Shell integration"
+heading "> 4/4  ---  Shell integration"
 divider
 
 mapfile -t configs < <(detect_configs)
@@ -187,7 +214,7 @@ else
             echo ""
             break
         else
-            printf "  ${RED}✗${RESET} Invalid option: ${BOLD}$REPLY${RESET}\n"
+            printf "  ${RED}${BOLD}x${RESET} Invalid option: ${BOLD}$REPLY${RESET}\n"
         fi
     done
 fi
@@ -200,25 +227,32 @@ heading "Setup complete"
 divider
 echo ""
 printf "  ${BOLD}Location${RESET}        Path\n"
-printf "  ${DIM}──────${RESET}        ${DIM}────${RESET}\n"
+printf "  ${DIM}------${RESET}        ${DIM}----${RESET}\n"
 printf "  ${CYAN}Module${RESET}         %s\n" "$MODULE_PATH"
 printf "  ${CYAN}Config${RESET}         %s\n" "$CONFIG_DIR/env"
 printf "  ${CYAN}Aliases${RESET}        %s\n" "$CONFIG_DIR/aliases.sh"
 echo ""
 divider
 
-heading "Next steps"
-divider
-echo ""
-printf "  ${BOLD}1.${RESET}  Edit ${CYAN}%s/env${RESET} and set your DEEPSEEK_API_KEY\n" "$CONFIG_DIR"
-echo ""
-printf "  ${BOLD}2.${RESET}  Reload your shell:\n"
-printf "       ${DIM}source ~/.zshrc${RESET}  (or ${DIM}source ~/.bashrc${RESET})\n"
-echo ""
-printf "  ${BOLD}3.${RESET}  Test it:\n"
-printf "       ${DIM}bashgency -p 'alias gst for git status' --preview${RESET}\n"
-echo ""
-divider
+if [ -f "$CONFIG_DIR/env" ]; then
+    final_key=$(grep -E '^DEEPSEEK_API_KEY=' "$CONFIG_DIR/env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')
+    if [ -n "$final_key" ] && [ "$final_key" != "sk-your-key-here" ]; then
+        heading "API key is set. Ready to go!"
+    else
+        heading "Next steps"
+        divider
+        echo ""
+        printf "  ${BOLD}1.${RESET}  Edit ${CYAN}%s/env${RESET} and set your DEEPSEEK_API_KEY\n" "$CONFIG_DIR"
+        echo ""
+        printf "  ${BOLD}2.${RESET}  Reload your shell:\n"
+        printf "       ${DIM}source ~/.zshrc${RESET}  (or ${DIM}source ~/.bashrc${RESET})\n"
+        echo ""
+        printf "  ${BOLD}3.${RESET}  Test it:\n"
+        printf "       ${DIM}bashgency -p 'alias gst for git status' --preview${RESET}\n"
+        echo ""
+        divider
+    fi
+fi
 echo ""
 sub "Tip: set ${BOLD}BASHGENCY_TARGET${RESET} in env to write aliases elsewhere"
 echo ""

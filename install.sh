@@ -16,7 +16,7 @@ MODULE_PATH="$ROOT/modules/bashgency-cli.sh"
 # In bash: BASH_SOURCE[0] != $0 means sourced
 # In zsh: sourced -> $0 is file path; executed -> $0 is shell name
 IS_SOURCED=false
-if [ -n "${BASH_SOURCE[0]-}" ]; then
+if [ -n "${BASH_SOURCE+x}" ]; then
     [ "${BASH_SOURCE[0]}" != "$0" ] && IS_SOURCED=true || true
 else
     case "$0" in -zsh|zsh|bash|-bash|sh|-sh) ;; *) IS_SOURCED=true ;; esac
@@ -26,13 +26,14 @@ fi
 # Colors & helpers
 # ---------------------------------------------------------------------------
 if [ -t 1 ]; then
-  RED=$(tput setaf 1 2>/dev/null || echo '')
-  GREEN=$(tput setaf 2 2>/dev/null || echo '')
-  YELLOW=$(tput setaf 3 2>/dev/null || echo '')
-  CYAN=$(tput setaf 6 2>/dev/null || echo '')
-  BOLD=$(tput bold 2>/dev/null || echo '')
-  DIM=$(tput dim 2>/dev/null || echo '')
-  RESET=$(tput sgr0 2>/dev/null || echo '')
+  # Suppress errors if bashgency already set these as readonly
+  { RED=$(tput setaf 1 2>/dev/null || echo ''); } 2>/dev/null || true
+  { GREEN=$(tput setaf 2 2>/dev/null || echo ''); } 2>/dev/null || true
+  { YELLOW=$(tput setaf 3 2>/dev/null || echo ''); } 2>/dev/null || true
+  { CYAN=$(tput setaf 6 2>/dev/null || echo ''); } 2>/dev/null || true
+  { BOLD=$(tput bold 2>/dev/null || echo ''); } 2>/dev/null || true
+  { DIM=$(tput dim 2>/dev/null || echo ''); } 2>/dev/null || true
+  { RESET=$(tput sgr0 2>/dev/null || echo ''); } 2>/dev/null || true
   SEP="${DIM}────────────────────────────────────────────────────────${RESET}"
 else
   RED=''; GREEN=''; YELLOW=''; CYAN=''; BOLD=''; DIM=''; RESET=''; SEP='---'

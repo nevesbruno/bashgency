@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 # Bashgency Installer
 # Steps:
@@ -7,6 +6,9 @@ set -euo pipefail
 #   2. Ask and write DEEPSEEK_API_KEY
 #   3. Create default aliases.sh (if needed)
 #   4. Add source line to shell config (desired)
+
+# Explicit error handling instead of set -euo pipefail:
+# set -u when sourced leaks to parent shell and breaks zsh plugins
 
 # Resolve script directory — compatível bash/zsh
 if [ -n "${BASH_SOURCE+x}" ]; then

@@ -22,7 +22,8 @@
 #   ui.sh      - UI components (boxes, panels, menus)
 #   api.sh     - DeepSeek API interaction
 #   env.sh     - Shell/OS detection, first-run setup
-#   apply.sh   - Apply AI-generated aliases/functions/modules
+#   apply.sh      - Apply AI-generated aliases/functions/modules
+#   inventory.sh  - Interactive inventory browser
 #
 
 # Guard: prevent double-source
@@ -46,6 +47,7 @@ if [ -d "$__BASHGENCY_LIB_DIR" ]; then
   source "$__BASHGENCY_LIB_DIR/api.sh"
   source "$__BASHGENCY_LIB_DIR/env.sh"
   source "$__BASHGENCY_LIB_DIR/apply.sh"
+  source "$__BASHGENCY_LIB_DIR/inventory.sh"
 fi
 
 # ============================================================
@@ -60,6 +62,8 @@ bashgency() {
     local preview=false
     local force=false
     local model="deepseek-chat"
+    local inventory_mode=false
+    local main_choice=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -67,32 +71,44 @@ bashgency() {
             -v|--preview) preview=true; shift ;;
             -f|--force) force=true; shift ;;
             -m|--model) model="$2"; shift 2 ;;
+            -i|--inventory|inventory) inventory_mode=true; shift ;;
             -h|--help)
                 __bashgency_box " BASHGENCY - HELP "
                 echo ""
                 echo " ${F_GREEN}USAGE:${RESET}"
                 echo "   bashgency                          ${F_CYAN}# Interactive mode${RESET}"
-                echo "   bashgency -p \"description\"         ${F_CYAN}# Direct mode${RESET}"
-                echo "   bashgency -p \"desc\" --preview      ${F_CYAN}# Preview only${RESET}"
-                echo "   bashgency -p \"desc\" --force        ${F_CYAN}# Skip confirmation${RESET}"
+                echo "   bashgency -p "description"         ${F_CYAN}# Direct mode${RESET}"
+                echo "   bashgency -p "desc" --preview      ${F_CYAN}# Preview only${RESET}"
+                echo "   bashgency -p "desc" --force        ${F_CYAN}# Skip confirmation${RESET}"
+                echo "   bashgency -i                       ${F_CYAN}# Inventory browser${RESET}"
+                echo "   bashgency --inventory              ${F_CYAN}# Inventory browser${RESET}"
                 echo ""
                 echo " ${F_YELLOW}FLAGS:${RESET}"
-                echo "   -p, --prompt   Describe the alias/function you need"
-                echo "   -v, --preview  Show generated code without applying"
-                echo "   -f, --force    Apply without confirmation"
-                echo "   -m, --model    DeepSeek model (default: deepseek-chat)"
-                echo "   -h, --help     Show this help"
+                echo "   -p, --prompt    Describe the alias/function you need"
+                echo "   -v, --preview   Show generated code without applying"
+                echo "   -f, --force     Apply without confirmation"
+                echo "   -i, --inventory Browse all created aliases/functions/modules"
+                echo "   -m, --model     DeepSeek model (default: deepseek-chat)"
+                echo "   -h, --help      Show this help"
                 echo ""
                 echo " ${F_MAGENTA}EXAMPLES:${RESET}"
                 echo "   bashgency"
                 echo '   bashgency -p "alias to show a colorful diff with stat"'
                 echo '   bashgency -p "function to create a branch with date in the name" --preview'
+                echo "   bashgency -i"
                 echo ""
                 return 0
                 ;;
             *) prompt="$1"; shift ;;
         esac
     done
+
+    # Inventory mode: shortcut to browser
+    if [ "$inventory_mode" = true ]; then
+        __bashgency_first_run_check || return $?
+        __bashgency_inventory
+        return $?
+    fi
 
     # First run check - detect environment and setup if needed
     __bashgency_first_run_check || return $?
@@ -103,17 +119,58 @@ bashgency() {
             clear
             __bashgency_box " BASHGENCY - AUTOMATION ASSISTANT "
             echo ""
-            echo " ${F_GREEN}Describe what you need to automate:${RESET}"
-            echo " ${F_CYAN}>${RESET} 'alias to open VS Code on the current branch'"
-            echo " ${F_CYAN}>${RESET} 'function to deploy to production with confirmation'"
-            echo " ${F_CYAN}>${RESET} 'alias to clean local branches that no longer exist on remote'"
+            echo " ${F_GREEN}What do you want to do?${RESET}"
+            echo ""
+            echo " ${F_CYAN}${BOLD}1${RESET}  Create a new alias, function, or module"
+            echo " ${F_CYAN}${BOLD}2${RESET}  Browse inventory ${F_DIM}(view all created items)${RESET}"
+            echo " ${F_CYAN}${BOLD}3${RESET}  Help"
+            echo " ${F_CYAN}${BOLD}4${RESET}  Exit"
             echo ""
             echo -ne " ${F_MAGENTA}${BOLD}>>>${RESET} "
-            read -r prompt
+            read -r main_choice
             echo ""
-            if [ -z "$prompt" ]; then
-                echo " ${F_RED}${BOLD}[!]${RESET} No description provided. Cancelling."
-                return 1
+            case "$main_choice" in
+                2|b|B|inventory|"browse"|"list"|"ls")
+                    __bashgency_first_run_check || return $?
+                    __bashgency_inventory
+                    prompt=""
+                    continue
+                    ;;
+                3|h|H|"help"|"-h"|"--help")
+                    bashgency -h | head -60
+                    echo ""
+                    echo -ne " ${F_YELLOW}${BOLD}[Enter]${RESET} to return "
+                    read -r
+                    prompt=""
+                    continue
+                    ;;
+                4|q|Q|exit|quit|sair)
+                    __bashgency_farewell
+                    return 0
+                    ;;
+                1|a|A|create|"new"|"criar")
+                    :  # fall through to prompt
+                    ;;
+                *)
+                    :  # treat as prompt input
+                    prompt="$main_choice"
+                    ;;
+            esac
+
+            # If choice was 1 or similar, prompt for description
+            if [ "$main_choice" = "1" ] || [ "$main_choice" = "a" ] || [ "$main_choice" = "A" ] || [ "$main_choice" = "create" ]; then
+                echo " ${F_GREEN}Describe what you need to automate:${RESET}"
+                echo " ${F_CYAN}>${RESET} 'alias to open VS Code on the current branch'"
+                echo " ${F_CYAN}>${RESET} 'function to deploy to production with confirmation'"
+                echo " ${F_CYAN}>${RESET} 'alias to clean local branches that no longer exist on remote'"
+                echo ""
+                echo -ne " ${F_MAGENTA}${BOLD}>>>${RESET} "
+                read -r prompt
+                echo ""
+                if [ -z "$prompt" ]; then
+                    echo " ${F_RED}${BOLD}[!]${RESET} No description provided. Cancelling."
+                    return 1
+                fi
             fi
         fi
 

@@ -71,21 +71,13 @@ __bashgency_build_context() {
     fi
 }
 
-# Call DeepSeek API and extract the response
-__bashgency_call_api() {
-    local prompt="$1"
-    local model="${2:-deepseek-chat}"
+# Generic API call - takes explicit system and user prompts
+__bashgency_call_api_raw() {
+    local system_prompt="$1"
+    local user_prompt="$2"
+    local model="${3:-deepseek-chat}"
 
     __bashgency_load_env || return 1
-
-    local system_prompt
-    system_prompt=$(__bashgency_build_system_prompt)
-
-    local context
-    context=$(__bashgency_build_context)
-
-    local user_prompt
-    user_prompt=$(printf 'Create alias/function based on this description: %s\n\nExisting aliases in the file (style reference):\n%s' "$prompt" "$context")
 
     local tmp_out
     tmp_out=$(mktemp)
@@ -111,6 +103,23 @@ EOF
     response=$(cat "$tmp_out")
     rm -f "$tmp_out"
     printf '%s' "$response"
+}
+
+# Call DeepSeek API for alias/function/module generation
+__bashgency_call_api() {
+    local prompt="$1"
+    local model="${2:-deepseek-chat}"
+
+    local system_prompt
+    system_prompt=$(__bashgency_build_system_prompt)
+
+    local context
+    context=$(__bashgency_build_context)
+
+    local user_prompt
+    user_prompt=$(printf 'Create alias/function based on this description: %s\n\nExisting aliases in the file (style reference):\n%s' "$prompt" "$context")
+
+    __bashgency_call_api_raw "$system_prompt" "$user_prompt" "$model"
 }
 
 # Parse HTTP response into (http_code, body)

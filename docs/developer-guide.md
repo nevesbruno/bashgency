@@ -5,9 +5,25 @@
 ```
 ~/lab/bashgency/modules/bashgency-cli.sh  (repo)
         |
-        +-- bashgency()           # main CLI
-        +-- __bashgency_*()       # internal functions
-        +-- __bashgency_apply_changes() # parser + write
+        +-- bashgency()              # main CLI (entry point)
+        +-- lib/
+        |     +-- api.sh             # DeepSeek HTTP calls
+        |     |     +-- __bashgency_call_api_raw()  # generic call
+        |     |     +-- __bashgency_call_api()      # alias wrapper
+        |     +-- run.sh             # semantic command execution
+        |     |     +-- __bashgency_run_flow()
+        |     |     +-- __bashgency_run_command()
+        |     |     +-- __bashgency_build_run_system_prompt()
+        |     |     +-- __bashgency_clean_run_output()
+        |     +-- apply.sh          # alias/function/module writer
+        |     +-- parser.sh         # AI output parsing
+        |     +-- ui.sh             # panels, previews, menus
+        |     +-- io.sh             # backup, history
+        |     +-- colors.sh         # tput colors
+        |     +-- core.sh           # config paths, env
+        |     +-- env.sh            # first-run detection
+        |     +-- inventory.sh      # inventory browser
+        |
         +-- __bashgency_extract_content() # API response parse
 
 bash-stuffs/alias.sh (optional)
@@ -50,8 +66,15 @@ No need to copy the module to `~/.config`; edit directly in the repo and re-`sou
 | `__bashgency_apply_changes` | Parser + disk write |
 | `__bashgency_aliases_path` | Resolve aliases file |
 | `__bashgency_extract_content` | Parse API response |
+| `__bashgency_call_api_raw` | Generic DeepSeek HTTP call |
+| `__bashgency_run_flow` | Run mode orchestrator |
+| `__bashgency_run_command` | Execute command + audit log |
+| `__bashgency_build_run_system_prompt` | Run mode system prompt |
+| `__bashgency_clean_run_output` | Strip markdown from AI response |
 
 ## AI output format
+
+### Alias/function/module mode
 
 ```
 ALIAS :: name :: command
@@ -61,11 +84,23 @@ MODULE :: name :: file_content :: source ~/.config/bashgency/modules/name.sh
 
 Separator: ` :: `
 
+### Run mode
+
+Raw shell command (no marker). The system prompt demands pure command output:
+
+```
+grep -rl "query" --include="*.txt" .
+```
+
+Cleaned via `__bashgency_clean_run_output()` (strips markdown fences, empty lines).
+
 ## API integration
 
 **Endpoint:** `https://api.deepseek.com/chat/completions`
 
-**Context:** first 150 lines of the aliases file, filter `^(function|alias)`, max 20 entries.
+**Context:** first 150 lines of the aliases file, filter `^(function|alias)`, max 20 entries (alias mode only).
+
+**Reuse:** `__bashgency_call_api_raw(system_prompt, user_prompt, model)` is shared by both alias and run flows.
 
 ## Variables
 
@@ -82,6 +117,12 @@ Separator: ` :: `
 
 ## How to extend
 
+### Add a new command type (e.g. `sudo`, `docker exec` loops)
+
+1. Add a new system prompt builder in a new or existing `lib/*.sh`
+2. Use `__bashgency_call_api_raw()` with the custom prompt
+3. Add a flag in `bashgency-cli.sh` and route to your flow
+
 ### Change aliases destination
 
 In `~/.config/bashgency/env`:
@@ -92,7 +133,7 @@ BASHGENCY_TARGET="$HOME/lab/bash-stuffs/alias.sh"
 
 ### Switch AI provider
 
-Change `__bashgency_load_env`, curl in `bashgency()`, and `__bashgency_extract_content`.
+Change `__bashgency_load_env`, curl in `api.sh`, and `__bashgency_extract_content`.
 
 ## Local development
 
@@ -111,8 +152,9 @@ mkdir -p "$BASHGENCY_DIR/modules" "$BASHGENCY_DIR/backups"
 
 ## PR checklist
 
-- [ ] Change in `modules/bashgency-cli.sh`
+- [ ] Change in `modules/`
 - [ ] `bashgency -p "..." --preview` works
+- [ ] `bashgency -r "..." -y` works (when applicable)
 - [ ] No secrets in commit
 - [ ] Docs in `docs/` if behavior changed
 - [ ] Bump `VERSION` + `CHANGELOG.md` if release
@@ -124,3 +166,4 @@ mkdir -p "$BASHGENCY_DIR/modules" "$BASHGENCY_DIR/backups"
 | No deduplication | Re-applying creates duplicate entries |
 | No automatic undo | Use backups in `backups/` |
 | Limited context | 20 reference aliases sent to AI |
+| Run mode: single command | Complex multi-step scripts still better as MODULE |

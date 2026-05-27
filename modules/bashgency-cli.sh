@@ -48,6 +48,7 @@ if [ -d "$__BASHGENCY_LIB_DIR" ]; then
   source "$__BASHGENCY_LIB_DIR/env.sh"
   source "$__BASHGENCY_LIB_DIR/apply.sh"
   source "$__BASHGENCY_LIB_DIR/inventory.sh"
+  source "$__BASHGENCY_LIB_DIR/run.sh"
 fi
 
 # ============================================================
@@ -63,6 +64,7 @@ bashgency() {
     local force=false
     local model="deepseek-chat"
     local inventory_mode=false
+    local run_mode=false
     local main_choice=""
 
     while [[ $# -gt 0 ]]; do
@@ -70,23 +72,30 @@ bashgency() {
             -p|--prompt) prompt="$2"; shift 2 ;;
             -v|--preview) preview=true; shift ;;
             -f|--force) force=true; shift ;;
+            -y|--yes) force=true; shift ;;
             -m|--model) model="$2"; shift 2 ;;
+            -r|--run) run_mode=true; shift ;;
+            --run) run_mode=true; shift ;;  # zsh compat
             -i|--inventory|inventory) inventory_mode=true; shift ;;
             -h|--help)
                 __bashgency_box " BASHGENCY - HELP "
                 echo ""
                 echo " ${F_GREEN}USAGE:${RESET}"
                 echo "   bashgency                          ${F_CYAN}# Interactive mode${RESET}"
-                echo "   bashgency -p "description"         ${F_CYAN}# Direct mode${RESET}"
-                echo "   bashgency -p "desc" --preview      ${F_CYAN}# Preview only${RESET}"
-                echo "   bashgency -p "desc" --force        ${F_CYAN}# Skip confirmation${RESET}"
+                echo "   bashgency -p \"description\"         ${F_CYAN}# Create alias/function/module${RESET}"
+                echo "   bashgency -p \"desc\" --preview      ${F_CYAN}# Preview only${RESET}"
+                echo "   bashgency -p \"desc\" --force        ${F_CYAN}# Skip confirmation${RESET}"
                 echo "   bashgency -i                       ${F_CYAN}# Inventory browser${RESET}"
                 echo "   bashgency --inventory              ${F_CYAN}# Inventory browser${RESET}"
+                echo "   bashgency -r \"description\"         ${F_CYAN}# Run command from description${RESET}"
+                echo "   bashgency -r \"desc\" -y             ${F_CYAN}# Run without confirmation${RESET}"
                 echo ""
                 echo " ${F_YELLOW}FLAGS:${RESET}"
                 echo "   -p, --prompt    Describe the alias/function you need"
                 echo "   -v, --preview   Show generated code without applying"
                 echo "   -f, --force     Apply without confirmation"
+                echo "   -y, --yes       Auto-confirm execution ${F_DIM}(run mode)${RESET}"
+                echo "   -r, --run       Run a command from natural language"
                 echo "   -i, --inventory Browse all created aliases/functions/modules"
                 echo "   -m, --model     DeepSeek model (default: deepseek-chat)"
                 echo "   -h, --help      Show this help"
@@ -95,6 +104,8 @@ bashgency() {
                 echo "   bashgency"
                 echo '   bashgency -p "alias to show a colorful diff with stat"'
                 echo '   bashgency -p "function to create a branch with date in the name" --preview'
+                echo '   bashgency -r "list all text files containing lorem ipsum"'
+                echo '   bashgency -r "find the 5 largest files" -y'
                 echo "   bashgency -i"
                 echo ""
                 return 0
@@ -107,6 +118,13 @@ bashgency() {
     if [ "$inventory_mode" = true ]; then
         __bashgency_first_run_check || return $?
         __bashgency_inventory
+        return $?
+    fi
+
+    # Run mode: semantic command execution
+    if [ "$run_mode" = true ]; then
+        __bashgency_first_run_check || return $?
+        __bashgency_run_flow "$prompt" "$model" "$force"
         return $?
     fi
 

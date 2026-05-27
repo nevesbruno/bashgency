@@ -1,10 +1,10 @@
 # Bashgency
 
-CLI that generates shell aliases, functions, and modules via AI (DeepSeek API).
+CLI that generates shell aliases, functions, modules — and executes commands — via AI (DeepSeek API).
 
 ## What it is
 
-**Bashgency** turns natural-language descriptions into shell aliases, functions, or modules. It calls the DeepSeek API, shows a preview, and writes changes after your confirmation.
+**Bashgency** turns natural-language descriptions into shell aliases, functions, modules, or direct command execution. It calls the DeepSeek API, shows a preview, and performs the action after your confirmation.
 
 ```
 User describes need
@@ -13,13 +13,13 @@ User describes need
    bashgency (CLI)
         |
         v
-  DeepSeek API  -->  structured shell code
+  DeepSeek API  -->  shell code or command
         |
         v
   preview + confirmation
         |
         v
-  ~/.config/bashgency/aliases.sh (+ modules in modules/)
+  aliases file / command execution / module file
 ```
 
 ## Prerequisites
@@ -80,10 +80,47 @@ BASHGENCY_TARGET="$HOME/lab/bash-stuffs/alias.sh"
 bashgency
 ```
 
-### Direct mode
+### Alias/function mode
 
 ```bash
 bashgency -p "alias to show a colorful diff with stat"
+```
+
+### Run mode (semantic command execution)
+
+Describe a task in natural language; bashgency generates the shell command, shows a preview, and executes it on approval.
+
+```bash
+bashgency -r "list all text files containing lorem ipsum"
+```
+
+Auto-confirm without prompt:
+
+```bash
+bashgency -r "find the 5 largest files" -y
+```
+
+Example output:
+
+```
+$ bashgency -r "list all listening ports with process"
+generating command via deepseek-chat...
+
++-- query ---+
+  request : list all listening ports with process
+  model   : deepseek-chat
+  status  : response received (2s)
++------------+
+
++-- command -----------------------------+
+  $ ss -tlnp | tail -n +2
++------------------------------------------+
+
+>>> Execute? [Y/n] y
+
+State    Recv-Q   Send-Q     Local Address:Port     Peer Address:Port  Process
+LISTEN   0        128              0.0.0.0:22            0.0.0.0:*      ...
+...
 ```
 
 ### Preview (no apply)
@@ -97,7 +134,7 @@ bashgency -p "description" -v
 
 ```bash
 bashgency -p "alias gst for git status" --force
-bashgency -p "description" -f
+bashgency -r "find large files" -y
 ```
 
 ### Help
@@ -106,18 +143,27 @@ bashgency -p "description" -f
 bashgency -h
 ```
 
-## Flow after code generation
+## Flow after code generation (alias mode)
 
 1. **Query** -- request, model, and response time
 2. **Preview** -- formatted alias/function/module
 3. **Menu** -- `1` apply | `2` retry | `3` exit
 
-## Where code is saved
+## Run mode flow
+
+1. **Query** -- request, model, response time
+2. **Command preview** -- proposed shell command
+3. **Approval** -- `[Y/n]` prompt (or `-y` to skip)
+4. **Execution** -- command runs directly on your terminal
+5. **Audit** -- entry saved to `~/.config/bashgency/history` as type `COMMAND`
+
+## Where code/commands are saved
 
 | Generated type | Default destination |
 | -------------- | ------------------- |
 | Alias / inline function | `~/.config/bashgency/aliases.sh` |
 | Complex module | `~/.config/bashgency/modules/<name>.sh` + `source` in aliases file |
+| Command execution | `~/.config/bashgency/history` (type `COMMAND`) |
 
 With `BASHGENCY_TARGET` set, aliases and functions go to that file.
 
@@ -126,9 +172,10 @@ With `BASHGENCY_TARGET` set, aliases and functions go to that file.
 | Path | Role |
 | ---- | ---- |
 | `~/lab/bashgency/modules/bashgency-cli.sh` | Versioned source |
+| `~/lab/bashgency/modules/lib/run.sh` | Command execution module |
 | `~/.config/bashgency/env` | API key |
 | `~/.config/bashgency/aliases.sh` | Generated aliases (default) |
-| `~/.config/bashgency/history` | Creation log |
+| `~/.config/bashgency/history` | Creation log (alias/function/module + COMMAND) |
 | `~/.config/bashgency/backups/` | Automatic backups |
 | `~/.config/bashgency/modules/*.sh` | AI-generated modules |
 
@@ -177,4 +224,4 @@ Read [docs/developer-guide.md](./docs/developer-guide.md) before changing code. 
 
 ## Version
 
-See `VERSION`. Current: **1.2.1**.
+See `VERSION`. Current: **1.4.0**.

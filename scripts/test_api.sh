@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ENV_FILE="${AI_ALIAS_ENV:-$HOME/.config/ai-alias/env}"
+ENV_FILE="${BASHGENCY_ENV:-$HOME/.config/bashgency/env}"
 if [ ! -f "$ENV_FILE" ]; then
-    echo "[ERRO] $ENV_FILE nao encontrado. Rode install.sh primeiro."
+    echo "[ERROR] $ENV_FILE not found. Run install.sh first."
     exit 1
 fi
 
@@ -11,7 +11,7 @@ fi
 source "$ENV_FILE"
 
 if [ -z "${DEEPSEEK_API_KEY:-}" ]; then
-    echo "[ERRO] DEEPSEEK_API_KEY nao definida em $ENV_FILE"
+    echo "[ERROR] DEEPSEEK_API_KEY not set in $ENV_FILE"
     exit 1
 fi
 

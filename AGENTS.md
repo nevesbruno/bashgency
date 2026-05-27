@@ -1,55 +1,56 @@
-# AGENTS.md - ai-alias
+# AGENTS.md - Bashgency
 
 ## Stack
 
 - Shell: bash/zsh
-- HTTP: curl + jq (+ python3 fallback para JSON)
+- HTTP: curl + jq (+ python3 fallback for JSON)
 - API: DeepSeek (`https://api.deepseek.com/chat/completions`)
 
 ## Layout
 
-| Path | Papel |
-| ---- | ----- |
-| `modules/ai-alias-cli.sh` | Codigo versionado (source de `~/lab/ai-alias`) |
-| `~/.config/ai-alias/env` | Segredos (nunca commitar) |
-| `~/.config/ai-alias/aliases.sh` | Destino padrao de aliases gerados |
-| `~/.config/ai-alias/modules/` | Modulos shell gerados pela IA |
-| `~/.config/ai-alias/history` | Log append-only |
-| `~/.config/ai-alias/backups/` | Backups pre-escrita |
+| Path | Role |
+| ---- | ---- |
+| `modules/bashgency-cli.sh` | Entry point (sources `lib/*.sh`) |
+| `modules/lib/` | 8 modules: colors, core, io, parser, ui, api, env, apply |
+| `~/.config/bashgency/env` | Secrets (never commit) |
+| `~/.config/bashgency/aliases.sh` | Default destination for generated aliases |
+| `~/.config/bashgency/modules/` | AI-generated shell modules |
+| `~/.config/bashgency/history` | Append-only log |
+| `~/.config/bashgency/backups/` | Pre-write backups |
 
-## Instalacao
+## Installation
 
 ```bash
-git clone <repo> ~/lab/ai-alias
-bash ~/lab/ai-alias/install.sh
-# Editar ~/.config/ai-alias/env com DEEPSEEK_API_KEY
+git clone <repo> ~/lab/bashgency
+bash ~/lab/bashgency/install.sh
+# Edit ~/.config/bashgency/env with DEEPSEEK_API_KEY
 ```
 
-Integracao tipica via [bash-stuffs](https://github.com/nevesbruno/bash-stuffs) `alias.sh`:
+Typical integration via [bash-stuffs](https://github.com/nevesbruno/bash-stuffs) `alias.sh`:
 
 ```bash
-source "$HOME/lab/ai-alias/modules/ai-alias-cli.sh"
+source "$HOME/lab/bashgency/modules/bashgency-cli.sh"
 ```
 
-## Convencoes de codigo
+## Code conventions
 
-- Funcoes internas: prefixo `__ai_`
-- Saida da IA: `ALIAS ::`, `FUNCTION ::`, `MODULE ::` com separador ` :: `
-- Diffs minimos; nunca commitar `env` ou chaves API
-- Bump `VERSION` + `CHANGELOG.md` em releases
+- Internal functions: `__bashgency_` prefix
+- AI output: `ALIAS ::`, `FUNCTION ::`, `MODULE ::` with ` :: ` separator
+- Minimal diffs; never commit `env` or API keys
+- Bump `VERSION` + `CHANGELOG.md` on releases
 
-## Testes rapidos
+## Quick tests
 
 ```bash
-source ~/lab/ai-alias/modules/ai-alias-cli.sh
-ai-alias -p "alias x para echo ok" --preview
-bash ~/lab/ai-alias/scripts/test_api.sh
+source ~/lab/bashgency/modules/bashgency-cli.sh
+bashgency -p "alias x for echo ok" --preview
+bash ~/lab/bashgency/scripts/test_api.sh
 ```
 
-## Override de destino
+## Destination override
 
-Em `~/.config/ai-alias/env`:
+In `~/.config/bashgency/env`:
 
 ```bash
-AI_ALIAS_TARGET="$HOME/lab/bash-stuffs/alias.sh"
+BASHGENCY_TARGET="$HOME/lab/bash-stuffs/alias.sh"
 ```

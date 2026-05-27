@@ -1,7 +1,7 @@
-# Segredos e estado local (runtime em ~/.config/ai-alias)
+# Secrets and local state (runtime in ~/.config/bashgency)
 env
 *.env
 .env
 
-# Backups gerados em dev
+# Backups generated in dev
 backups/

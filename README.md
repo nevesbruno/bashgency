@@ -1,178 +1,180 @@
-# AI Alias
+# Bashgency
 
-CLI que gera aliases, funcoes e modulos shell via IA (DeepSeek API).
+CLI that generates shell aliases, functions, and modules via AI (DeepSeek API).
 
-## O que e
+## What it is
 
-O **AI Alias** transforma descricoes em linguagem natural em aliases, funcoes ou modulos shell. Consulta a API DeepSeek, mostra preview e grava com sua confirmacao.
+**Bashgency** turns natural-language descriptions into shell aliases, functions, or modules. It calls the DeepSeek API, shows a preview, and writes changes after your confirmation.
 
 ```
-Usuario descreve necessidade
+User describes need
         |
         v
-   ai-alias (CLI)
+   bashgency (CLI)
         |
         v
-  DeepSeek API  -->  codigo shell estruturado
+  DeepSeek API  -->  structured shell code
         |
         v
-  preview + confirmacao
+  preview + confirmation
         |
         v
-  ~/.config/ai-alias/aliases.sh (+ modulos em modules/)
+  ~/.config/bashgency/aliases.sh (+ modules in modules/)
 ```
 
-## Pre-requisitos
+## Prerequisites
 
-| Ferramenta | Obrigatorio | Instalacao (Debian/Ubuntu) |
-| ---------- | ----------- | -------------------------- |
-| `curl` | Sim | `sudo apt install curl` |
-| `jq` | Sim | `sudo apt install jq` |
-| `python3` | Recomendado | fallback de parse JSON |
-| Shell zsh ou bash | Sim | ja incluso no WSL/Linux |
+| Tool | Required | Install (Debian/Ubuntu) |
+| ---- | -------- | ----------------------- |
+| `curl` | Yes | `sudo apt install curl` |
+| `jq` | Yes | `sudo apt install jq` |
+| `python3` | Recommended | JSON parse fallback |
+| zsh or bash | Yes | included in WSL/Linux |
 
-## Instalacao
+## Installation
 
-### 1. Clonar o repositorio
+### 1. Clone the repository
 
 ```bash
-git clone git@github.com:nevesbruno/ai-alias.git ~/lab/ai-alias
+git clone git@github.com:nevesbruno/bashgency.git ~/lab/bashgency
 ```
 
-### 2. Configurar runtime
+### 2. Configure runtime
 
 ```bash
-bash ~/lab/ai-alias/install.sh
-# Edite ~/.config/ai-alias/env e defina DEEPSEEK_API_KEY
+bash ~/lab/bashgency/install.sh
+# Edit ~/.config/bashgency/env and set DEEPSEEK_API_KEY
 ```
 
-### 3. Carregar no shell
+The installer will prompt you to add the `source` lines to your shell config (`.zshrc`, `.bashrc`, etc.) automatically.
 
-No `~/.zshrc` ou no seu `alias.sh` (ex. [bash-stuffs](https://github.com/nevesbruno/bash-stuffs)):
+### 3. Load in your shell
+
+If you skipped the installer prompt, add this to `~/.zshrc` or your `alias.sh` (e.g. [bash-stuffs](https://github.com/nevesbruno/bash-stuffs)):
 
 ```bash
-[ -f "$HOME/lab/ai-alias/modules/ai-alias-cli.sh" ] && \
-  source "$HOME/lab/ai-alias/modules/ai-alias-cli.sh"
+[ -f "$HOME/lab/bashgency/modules/bashgency-cli.sh" ] && \
+  source "$HOME/lab/bashgency/modules/bashgency-cli.sh"
 ```
 
-Aliases gerados vao para `~/.config/ai-alias/aliases.sh` por padrao. Carregue no shell:
+Generated aliases go to `~/.config/bashgency/aliases.sh` by default. Load them in your shell:
 
 ```bash
-[ -f "$HOME/.config/ai-alias/aliases.sh" ] && \
-  source "$HOME/.config/ai-alias/aliases.sh"
+[ -f "$HOME/.config/bashgency/aliases.sh" ] && \
+  source "$HOME/.config/bashgency/aliases.sh"
 ```
 
-**Override:** para gravar em outro arquivo (ex. dotfiles), em `~/.config/ai-alias/env`:
+**Override:** to write to another file (e.g. dotfiles), in `~/.config/bashgency/env`:
 
 ```bash
-AI_ALIAS_TARGET="$HOME/lab/bash-stuffs/alias.sh"
+BASHGENCY_TARGET="$HOME/lab/bash-stuffs/alias.sh"
 ```
 
-**Seguranca:** nunca commite a chave. O arquivo `env` fica fora do git.
+**Security:** never commit your API key. The `env` file stays outside git.
 
-## Modos de uso
+## Usage modes
 
-### Interativo (padrao)
+### Interactive (default)
 
 ```bash
-ai-alias
+bashgency
 ```
 
-### Modo direto
+### Direct mode
 
 ```bash
-ai-alias -p "alias para ver diff colorido com stat"
+bashgency -p "alias to show a colorful diff with stat"
 ```
 
-### Preview (nao aplica)
+### Preview (no apply)
 
 ```bash
-ai-alias -p "funcao para criar branch com data no nome" --preview
-ai-alias -p "descricao" -v
+bashgency -p "function to create a branch with date in the name" --preview
+bashgency -p "description" -v
 ```
 
-### Force (pula confirmacao)
+### Force (skip confirmation)
 
 ```bash
-ai-alias -p "alias gst para git status" --force
-ai-alias -p "descricao" -f
+bashgency -p "alias gst for git status" --force
+bashgency -p "description" -f
 ```
 
-### Ajuda
+### Help
 
 ```bash
-ai-alias -h
+bashgency -h
 ```
 
-## Fluxo apos gerar codigo
+## Flow after code generation
 
-1. **Consulta** -- pedido, modelo e tempo de resposta
-2. **Preview** -- alias/funcao/modulo formatado
-3. **Menu** -- `1` aplicar | `2` retry | `3` sair
+1. **Query** -- request, model, and response time
+2. **Preview** -- formatted alias/function/module
+3. **Menu** -- `1` apply | `2` retry | `3` exit
 
-## Onde o codigo e salvo
+## Where code is saved
 
-| Tipo gerado | Destino (padrao) |
-| ----------- | ---------------- |
-| Alias / funcao inline | `~/.config/ai-alias/aliases.sh` |
-| Modulo complexo | `~/.config/ai-alias/modules/<nome>.sh` + `source` no arquivo de aliases |
+| Generated type | Default destination |
+| -------------- | ------------------- |
+| Alias / inline function | `~/.config/bashgency/aliases.sh` |
+| Complex module | `~/.config/bashgency/modules/<name>.sh` + `source` in aliases file |
 
-Com `AI_ALIAS_TARGET` definido, aliases e funcoes vao para esse arquivo.
+With `BASHGENCY_TARGET` set, aliases and functions go to that file.
 
-## Onde fica cada coisa
+## Directory layout
 
-| Path | Papel |
-| ---- | ----- |
-| `~/lab/ai-alias/modules/ai-alias-cli.sh` | Codigo versionado |
-| `~/.config/ai-alias/env` | API key |
-| `~/.config/ai-alias/aliases.sh` | Aliases gerados (padrao) |
-| `~/.config/ai-alias/history` | Log de criacoes |
-| `~/.config/ai-alias/backups/` | Backups automaticos |
-| `~/.config/ai-alias/modules/*.sh` | Modulos gerados pela IA |
+| Path | Role |
+| ---- | ---- |
+| `~/lab/bashgency/modules/bashgency-cli.sh` | Versioned source |
+| `~/.config/bashgency/env` | API key |
+| `~/.config/bashgency/aliases.sh` | Generated aliases (default) |
+| `~/.config/bashgency/history` | Creation log |
+| `~/.config/bashgency/backups/` | Automatic backups |
+| `~/.config/bashgency/modules/*.sh` | AI-generated modules |
 
 ## Troubleshooting
 
-### Modulo nao encontrado
+### Module not found
 
-Clone em `~/lab/ai-alias` e adicione o `source` no shell.
+Clone to `~/lab/bashgency` and add the `source` line to your shell.
 
-### API key ausente
-
-```bash
-bash ~/lab/ai-alias/install.sh
-# Edite ~/.config/ai-alias/env
-```
-
-### Erro HTTP 401/403
+### Missing API key
 
 ```bash
-bash ~/lab/ai-alias/scripts/test_api.sh
+bash ~/lab/bashgency/install.sh
+# Edit ~/.config/bashgency/env
 ```
 
-### Alias nao disponivel apos aplicar
+### HTTP 401/403 error
+
+```bash
+bash ~/lab/bashgency/scripts/test_api.sh
+```
+
+### Alias not available after apply
 
 ```bash
 source ~/.zshrc
-source ~/.config/ai-alias/aliases.sh
+source ~/.config/bashgency/aliases.sh
 ```
 
-### Reverter
+### Revert
 
 ```bash
-ls ~/.config/ai-alias/backups/
-cp ~/.config/ai-alias/backups/alias_backup_YYYYMMDD_HHMMSS.sh \
-   ~/.config/ai-alias/aliases.sh
-source ~/.config/ai-alias/aliases.sh
+ls ~/.config/bashgency/backups/
+cp ~/.config/bashgency/backups/alias_backup_YYYYMMDD_HHMMSS.sh \
+   ~/.config/bashgency/aliases.sh
+source ~/.config/bashgency/aliases.sh
 ```
 
-## Contribuicao
+## Contributing
 
-MIT. Issues e PRs bem-vindos. Arquitetura: [docs/guia-desenvolvedor.md](./docs/guia-desenvolvedor.md). Flags: [docs/referencia-cli.md](./docs/referencia-cli.md).
+MIT. Issues and PRs welcome. Architecture: [docs/developer-guide.md](./docs/developer-guide.md). Flags: [docs/cli-reference.md](./docs/cli-reference.md).
 
-## Nota para agentes de IA
+## Note for AI agents
 
-Leia [docs/guia-desenvolvedor.md](./docs/guia-desenvolvedor.md) antes de alterar codigo. Diffs minimos, convencoes `__ai_*` e formato `TIPO ::`. Nunca commite segredos.
+Read [docs/developer-guide.md](./docs/developer-guide.md) before changing code. Minimal diffs, `__bashgency_*` conventions, and `TYPE ::` format. Never commit secrets.
 
-## Versao
+## Version
 
-Consulte `VERSION`. Atual: **1.2.1**.
+See `VERSION`. Current: **1.2.1**.

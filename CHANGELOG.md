@@ -1,56 +1,76 @@
 # Changelog
 
-Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [1.3.0] - 2026-05-27
+
+### Added
+
+- First-run detection: auto-detects shell (bash/zsh) and OS (linux/macos) on initial execution
+- Interactive setup prompt: guides user through config file, API key, and rc file configuration
+- Automatic rc sourcing: adds `source` lines for `bashgency-cli.sh` and `aliases.sh` to `.bashrc`/`.zshrc`
+- Marker file (`~/.config/bashgency/.initialized`) to skip first-run check on subsequent calls
+- `__bashgency_detect_shell()` - identifies current shell and rc file path
+- `__bashgency_detect_os()` - identifies operating system
+- `__bashgency_first_run_check()` - orchestrates setup flow
+- `__bashgency_escape_grep()` - helper for grep path escaping
 
 ## [Unreleased]
 
+### Added
+
+- `install.sh` now handles step 3 interactively: detects shell config (`.zshrc`, `.bashrc`, `.bash_profile`, `.profile`), checks for duplicates, and adds source lines for `bashgency-cli.sh` and `aliases.sh` via a select menu
+
 ### Changed
 
-- Repositorio isolado do bash-stuffs; codigo em `~/lab/ai-alias`
-- Destino padrao de aliases: `~/.config/ai-alias/aliases.sh` (override via `AI_ALIAS_TARGET`)
+- Repository renamed from `ai-alias` to `bashgency`; code lives in `~/lab/bashgency`
+- CLI command renamed from `ai-alias` to `bashgency`
+- Config directory moved from `~/.config/ai-alias` to `~/.config/bashgency`
+- Environment variables renamed: `AI_ALIAS_*` -> `BASHGENCY_*`
+- Internal functions renamed: `__ai_*` -> `__bashgency_*`
 
 ## [1.2.1] - 2026-05-20
 
 ### Changed
 
-- README consolidado com guia do usuario (user-first)
-- Secao de contribuicao e open source com link para guia do desenvolvedor
-- `guia-usuario.md` reduzido a redirect para o README
+- README consolidated with user guide (user-first)
+- Open source contribution section with link to developer guide
+- `user-guide.md` reduced to redirect to README
 
 ## [1.2.0] - 2026-05-20
 
 ### Added
 
-- Documentacao completa (guia usuario, guia desenvolvedor, referencia CLI)
-- Script `scripts/test_api.sh` para validar conexao com API DeepSeek
-- Menu interativo pos-geracao (aplicar / retry / sair)
-- Preview com paineis (`consulta`, `gerado`, `acao`)
-- Fallback de parse JSON via `python3` em `__ai_extract_content`
-- Mensagens de despedida aleatorias ao sair
+- Full documentation (user guide, developer guide, CLI reference)
+- `scripts/test_api.sh` to validate DeepSeek API connection
+- Interactive post-generation menu (apply / retry / exit)
+- Preview panels (`query`, `generated`, `action`)
+- JSON parse fallback via `python3` in `__bashgency_extract_content`
+- Random farewell messages on exit
 
 ### Changed
 
-- Refatoracao do modulo `ai-alias-cli.sh` (UI, parser multiline, apply flow)
-- Endpoint API atualizado para `https://api.deepseek.com/chat/completions`
-- Flag `--force` aplica sem confirmacao; loop interativo com retry
+- Refactored `bashgency-cli.sh` module (UI, multiline parser, apply flow)
+- API endpoint updated to `https://api.deepseek.com/chat/completions`
+- `--force` applies without confirmation; interactive loop with retry
 
 ## [1.1.0] - 2025-10-10
 
 ### Added
 
-- Modo debug (`AI_ALIAS_DEBUG=1`)
-- Parser aceita separadores `::` e `|`
-- Backups automaticos antes de aplicar alteracoes
-- Historico de criacoes em `~/.config/ai-alias/history`
+- Debug mode (`BASHGENCY_DEBUG=1`)
+- Parser accepts `::` and `|` separators
+- Automatic backups before applying changes
+- Creation history in `~/.config/bashgency/history`
 
 ### Fixed
 
-- Variavel `i` vazando para o terminal
-- Chamada curl e extracao de resposta HTTP
+- Variable `i` leaking to terminal
+- curl call and HTTP response extraction
 
 ## [1.0.0] - 2025-10-06
 
 ### Added
 
-- CLI `ai-alias` com integracao DeepSeek
-- Geracao de aliases, funcoes e modulos shell
+- `bashgency` CLI with DeepSeek integration
+- Generation of aliases, functions, and shell modules

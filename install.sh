@@ -1,20 +1,12 @@
 #!/usr/bin/env bash
 
 # Bashgency Installer
-# Steps:
-#   1. Create config directory structure
-#   2. Ask and write DEEPSEEK_API_KEY
-#   3. Create default aliases.sh (if needed)
-#   4. Add source line to shell config (desired)
-
-# Explicit error handling instead of set -euo pipefail:
-# set -u when sourced leaks to parent shell and breaks zsh plugins
 
 # Resolve script directory — compatível bash/zsh
 if [ -n "${BASH_SOURCE+x}" ]; then
-    ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null)"
 else
-    ROOT="$(cd "$(dirname "$0")" && pwd)"
+    ROOT="$(cd "$(dirname "$0")" && pwd 2>/dev/null)"
 fi
 CONFIG_DIR="${BASHGENCY_DIR:-$HOME/.config/bashgency}"
 MODULE_PATH="$ROOT/modules/bashgency-cli.sh"

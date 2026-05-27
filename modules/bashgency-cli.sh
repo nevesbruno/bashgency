@@ -31,17 +31,22 @@ if [ -n "${__BASHGENCY_CLI_LOADED:-}" ]; then
 fi
 
 # Resolve lib directory relative to this script's location
-__BASHGENCY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/lib" && pwd)"
+# Compatible with bash (BASH_SOURCE) and zsh ($0 when sourced)
+__BASHGENCY_SRC="${BASH_SOURCE[0]:-$0}"
+__BASHGENCY_DIR="$(cd "$(dirname "$__BASHGENCY_SRC")" 2>/dev/null && pwd)"
+__BASHGENCY_LIB_DIR="$__BASHGENCY_DIR/lib"
 
 # Source modules in dependency order
-source "$__BASHGENCY_LIB_DIR/colors.sh"
-source "$__BASHGENCY_LIB_DIR/core.sh"
-source "$__BASHGENCY_LIB_DIR/parser.sh"
-source "$__BASHGENCY_LIB_DIR/io.sh"
-source "$__BASHGENCY_LIB_DIR/ui.sh"
-source "$__BASHGENCY_LIB_DIR/api.sh"
-source "$__BASHGENCY_LIB_DIR/env.sh"
-source "$__BASHGENCY_LIB_DIR/apply.sh"
+if [ -d "$__BASHGENCY_LIB_DIR" ]; then
+  source "$__BASHGENCY_LIB_DIR/colors.sh"
+  source "$__BASHGENCY_LIB_DIR/core.sh"
+  source "$__BASHGENCY_LIB_DIR/parser.sh"
+  source "$__BASHGENCY_LIB_DIR/io.sh"
+  source "$__BASHGENCY_LIB_DIR/ui.sh"
+  source "$__BASHGENCY_LIB_DIR/api.sh"
+  source "$__BASHGENCY_LIB_DIR/env.sh"
+  source "$__BASHGENCY_LIB_DIR/apply.sh"
+fi
 
 # ============================================================
 # MAIN CLI

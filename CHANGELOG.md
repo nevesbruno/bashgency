@@ -21,6 +21,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `install.sh` now handles step 3 interactively: detects shell config (`.zshrc`, `.bashrc`, `.bash_profile`, `.profile`), checks for duplicates, and adds source lines for `bashgency-cli.sh` and `aliases.sh` via a select menu
 
+### Fixed
+
+- `modules/bashgency-cli.sh`: lib path resolution now works in zsh (`BASH_SOURCE` fallback to `$0` + guarded `source` with dir check)
+
 ### Changed
 
 - Repository renamed from `ai-alias` to `bashgency`; code lives in `~/lab/bashgency`

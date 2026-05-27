@@ -6,55 +6,94 @@ set -euo pipefail
 #   1. Create config directory structure
 #   2. Copy env.example (if not exists)
 #   3. Create default aliases.sh (if needed)
-#   4. Add source line to shell config (if desired)
+#   4. Add source line to shell config (desired)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="${BASHGENCY_DIR:-$HOME/.config/bashgency}"
 MODULE_PATH="$ROOT/modules/bashgency-cli.sh"
 
-# --- Colors (from __bashgency_colors pattern) ---
+# ---------------------------------------------------------------------------
+# Colors & helpers
+# ---------------------------------------------------------------------------
 if [ -t 1 ]; then
   RED=$(tput setaf 1 2>/dev/null || echo '')
   GREEN=$(tput setaf 2 2>/dev/null || echo '')
   YELLOW=$(tput setaf 3 2>/dev/null || echo '')
+  CYAN=$(tput setaf 6 2>/dev/null || echo '')
   BOLD=$(tput bold 2>/dev/null || echo '')
+  DIM=$(tput dim 2>/dev/null || echo '')
   RESET=$(tput sgr0 2>/dev/null || echo '')
+  SEP="${DIM}────────────────────────────────────────────────────────${RESET}"
 else
-  RED=''; GREEN=''; YELLOW=''; BOLD=''; RESET=''
+  RED=''; GREEN=''; YELLOW=''; CYAN=''; BOLD=''; DIM=''; RESET=''; SEP='---'
 fi
 
-info()  { printf "${GREEN}[+]${RESET} %s\n" "$*"; }
-warn()  { printf "${YELLOW}[*]${RESET} %s\n" "$*"; }
-err()   { printf "${RED}[!]${RESET} %s\n" "$*" >&2; }
+info()    { printf "  ${GREEN}✓${RESET} %s\n" "$*"; }
+warn()    { printf "  ${YELLOW}○${RESET} %s\n" "$*"; }
+err()     { printf "  ${RED}✗${RESET} %s\n" "$*" >&2; }
+heading() { printf "\n${BOLD}${CYAN}%s${RESET}\n" "$*"; }
+sub()     { printf "  ${DIM}%s${RESET}\n" "$*"; }
+divider() { printf "  ${SEP}\n"; }
 
-# ==============================================================
-# Step 1 + 2: Config dir structure + env
-# ==============================================================
-info "Setting up Bashgency runtime in $CONFIG_DIR"
+# ---------------------------------------------------------------------------
+# Header
+# ---------------------------------------------------------------------------
+printf "\n"
+printf "  ${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}                 ${BOLD}Bashgency${RESET}                  ${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}         AI-powered shell code generator        ${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${RESET}\n"
+printf "\n"
+
+# ---------------------------------------------------------------------------
+# Step 1/4 — Config directory structure
+# ---------------------------------------------------------------------------
+heading "Step 1/4  ──  Config directory"
+divider
 
 mkdir -p "$CONFIG_DIR/modules" "$CONFIG_DIR/backups"
+info "Created ${BOLD}$CONFIG_DIR${RESET}"
+sub "  ├─ modules/"
+sub "  └─ backups/"
+divider
+
+# ---------------------------------------------------------------------------
+# Step 2/4 — Environment file
+# ---------------------------------------------------------------------------
+heading "Step 2/4  ──  API key setup"
+divider
 
 if [ ! -f "$CONFIG_DIR/env" ]; then
     cp "$ROOT/env.example" "$CONFIG_DIR/env"
     chmod 600 "$CONFIG_DIR/env"
-    info "Created $CONFIG_DIR/env -- edit it and set DEEPSEEK_API_KEY"
+    info "Created ${BOLD}$CONFIG_DIR/env${RESET}"
+    warn "Don't forget to add your ${BOLD}DEEPSEEK_API_KEY${RESET}"
+    sub "  Edit: $CONFIG_DIR/env"
 else
-    warn "$CONFIG_DIR/env already exists (not overwritten)"
+    warn "${BOLD}$CONFIG_DIR/env${RESET} already exists  (not overwritten)"
 fi
+divider
 
-# ==============================================================
-# Step 3: Default aliases file
-# ==============================================================
+# ---------------------------------------------------------------------------
+# Step 3/4 — Default aliases file
+# ---------------------------------------------------------------------------
+heading "Step 3/4  ──  Aliases destination"
+divider
+
 if ! grep -q '^BASHGENCY_TARGET=' "$CONFIG_DIR/env" 2>/dev/null; then
     if [ ! -f "$CONFIG_DIR/aliases.sh" ]; then
         touch "$CONFIG_DIR/aliases.sh"
-        info "Created $CONFIG_DIR/aliases.sh (default aliases destination)"
+        info "Created ${BOLD}$CONFIG_DIR/aliases.sh${RESET}  (default target)"
     fi
 fi
+if [ -f "$CONFIG_DIR/aliases.sh" ]; then
+    info "Aliases file: ${BOLD}$CONFIG_DIR/aliases.sh${RESET}"
+fi
+divider
 
-# ==============================================================
-# Step 4: Load in shell (the actual step 3 from README)
-# ==============================================================
+# ---------------------------------------------------------------------------
+# Step 4/4 — Shell integration
+# ---------------------------------------------------------------------------
 # Lines to add
 SOURCE_LINE='[ -f "$HOME/lab/bashgency/modules/bashgency-cli.sh" ] && \'
 SOURCE_LINE2='  source "$HOME/lab/bashgency/modules/bashgency-cli.sh"'
@@ -63,19 +102,16 @@ ALIASES_LINE2='  source "$HOME/.config/bashgency/aliases.sh"'
 
 detect_configs() {
     local candidates=()
-    # Zsh — respects ZDOTDIR
     local zdotdir="${ZDOTDIR:-$HOME}"
-    [ -f "$zdotdir/.zshrc" ] && candidates+=("$zdotdir/.zshrc")
-    # Bash
-    [ -f "$HOME/.bashrc" ]    && candidates+=("$HOME/.bashrc")
-    [ -f "$HOME/.bash_profile" ] && candidates+=("$HOME/.bash_profile")
-    [ -f "$HOME/.profile" ]   && candidates+=("$HOME/.profile")
-    # Default fallback: create .zshrc or .bashrc depending on $SHELL
+    [ -f "$zdotdir/.zshrc" ]        && candidates+=("$zdotdir/.zshrc")
+    [ -f "$HOME/.bashrc" ]          && candidates+=("$HOME/.bashrc")
+    [ -f "$HOME/.bash_profile" ]    && candidates+=("$HOME/.bash_profile")
+    [ -f "$HOME/.profile" ]         && candidates+=("$HOME/.profile")
     if [ ${#candidates[@]} -eq 0 ]; then
         case "${SHELL##*/}" in
-            zsh) candidates+=("$zdotdir/.zshrc") ;;
+            zsh)  candidates+=("$zdotdir/.zshrc") ;;
             bash) candidates+=("$HOME/.bashrc") ;;
-            *) candidates+=("$HOME/.zshrc") ;;
+            *)    candidates+=("$HOME/.zshrc") ;;
         esac
     fi
     printf '%s\n' "${candidates[@]}"
@@ -83,44 +119,33 @@ detect_configs() {
 
 already_sourced() {
     local file="$1"
-    if [ -f "$file" ]; then
-        grep -qF 'bashgency-cli.sh' "$file" 2>/dev/null && return 0
-    fi
+    [ -f "$file" ] && grep -qF 'bashgency-cli.sh' "$file" 2>/dev/null && return 0
     return 1
 }
 
 add_source_block() {
     local file="$1"
-    local added=false
-
     {
         echo ""
         echo "# Bashgency"
         echo "$SOURCE_LINE"
         echo "$SOURCE_LINE2"
     } >> "$file"
-    added=true
-
-    # Also add aliases source, unless BASHGENCY_TARGET is set
     if ! grep -q '^BASHGENCY_TARGET=' "$CONFIG_DIR/env" 2>/dev/null; then
         {
             echo "$ALIASES_LINE"
             echo "$ALIASES_LINE2"
         } >> "$file"
     fi
-
     echo "" >> "$file"
-    info "Added Bashgency source lines to $file"
+    info "Added Bashgency source lines to ${BOLD}$file${RESET}"
 }
 
-# --- Interactive shell loader ---
-echo ""
-info "Shell integration (step 3: load bashgency in your shell)"
+heading "Step 4/4  ──  Shell integration"
+divider
 
-# Detect which config files exist (or would be created)
 mapfile -t configs < <(detect_configs)
 
-# Filter to those that DON'T already have the source
 local_available=()
 local_already=()
 for cfg in "${configs[@]}"; do
@@ -133,42 +158,67 @@ done
 
 if [ ${#local_already[@]} -gt 0 ]; then
     for cfg in "${local_already[@]}"; do
-        warn "Bashgency already sourced in $cfg (skipping)"
+        info "Already sourced in ${BOLD}$cfg${RESET}  (skipped)"
     done
 fi
 
 if [ ${#local_available[@]} -eq 0 ]; then
     info "Bashgency is already loaded in all detected config files."
 else
-    PS3="Select config file to add Bashgency (or 0 to skip): "
+    echo ""
+    printf "  ${CYAN}?${RESET} Select a config file to add Bashgency source lines:\n"
+    echo ""
+    PS3="  ${BOLD}Enter a number${RESET} (or ${YELLOW}0${RESET} to skip): "
     select cfg in "${local_available[@]}"; do
         if [ -n "$cfg" ]; then
+            echo ""
             add_source_block "$cfg"
             break
         elif [ "$REPLY" = "0" ]; then
-            warn "Skipped shell integration. Add manually:"
+            echo ""
+            warn "Skipped. Add these lines manually:"
+            echo ""
             echo "    $SOURCE_LINE"
             echo "    $SOURCE_LINE2"
+            if ! grep -q '^BASHGENCY_TARGET=' "$CONFIG_DIR/env" 2>/dev/null; then
+                echo "    $ALIASES_LINE"
+                echo "    $ALIASES_LINE2"
+            fi
+            echo ""
             break
         else
-            err "Invalid choice: $REPLY"
+            printf "  ${RED}✗${RESET} Invalid option: ${BOLD}$REPLY${RESET}\n"
         fi
     done
 fi
+divider
 
-# ==============================================================
+# ---------------------------------------------------------------------------
 # Summary
-# ==============================================================
+# ---------------------------------------------------------------------------
+heading "Setup complete"
+divider
 echo ""
-info "Setup complete."
+printf "  ${BOLD}Location${RESET}        Path\n"
+printf "  ${DIM}──────${RESET}        ${DIM}────${RESET}\n"
+printf "  ${CYAN}Module${RESET}         %s\n" "$MODULE_PATH"
+printf "  ${CYAN}Config${RESET}         %s\n" "$CONFIG_DIR/env"
+printf "  ${CYAN}Aliases${RESET}        %s\n" "$CONFIG_DIR/aliases.sh"
 echo ""
-echo "  ${BOLD}Module:${RESET}     $MODULE_PATH"
-echo "  ${BOLD}Config:${RESET}     $CONFIG_DIR/env"
-echo "  ${BOLD}Aliases:${RESET}    $CONFIG_DIR/aliases.sh"
+divider
+
+heading "Next steps"
+divider
 echo ""
-echo "  ${BOLD}Next steps:${RESET}"
-echo "  1. Edit $CONFIG_DIR/env and set DEEPSEEK_API_KEY"
-echo "  2. Reload your shell: source ~/.zshrc (or ~/.bashrc)"
-echo "  3. Test: bashgency -p 'alias gst for git status' --preview"
+printf "  ${BOLD}1.${RESET}  Edit ${CYAN}%s/env${RESET} and set your DEEPSEEK_API_KEY\n" "$CONFIG_DIR"
 echo ""
-echo "  ${BOLD}Override:${RESET}   BASHGENCY_TARGET in env changes aliases destination"
+printf "  ${BOLD}2.${RESET}  Reload your shell:\n"
+printf "       ${DIM}source ~/.zshrc${RESET}  (or ${DIM}source ~/.bashrc${RESET})\n"
+echo ""
+printf "  ${BOLD}3.${RESET}  Test it:\n"
+printf "       ${DIM}bashgency -p 'alias gst for git status' --preview${RESET}\n"
+echo ""
+divider
+echo ""
+sub "Tip: set ${BOLD}BASHGENCY_TARGET${RESET} in env to write aliases elsewhere"
+echo ""

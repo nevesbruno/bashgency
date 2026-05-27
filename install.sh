@@ -8,7 +8,12 @@ set -euo pipefail
 #   3. Create default aliases.sh (if needed)
 #   4. Add source line to shell config (desired)
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve script directory — compatível bash/zsh
+if [ -n "${BASH_SOURCE+x}" ]; then
+    ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+    ROOT="$(cd "$(dirname "$0")" && pwd)"
+fi
 CONFIG_DIR="${BASHGENCY_DIR:-$HOME/.config/bashgency}"
 MODULE_PATH="$ROOT/modules/bashgency-cli.sh"
 

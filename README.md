@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="docs/bashgency-logo.svg" alt="Bashgency icon — terminal cursor agent with animated eyes" width="220">
+  <img src="docs/bashgency-logo.svg" alt="Bashgency icon — terminal cursor agent with animated eyes" width="340">
   <br>
-  <img src="docs/bashgency-wordmark.svg" alt="bashgency — your shell agency" width="320">
+  <img src="docs/bashgency-wordmark.svg" alt="bashgency — your shell agency" width="480">
 </p>
 
 <p align="center">

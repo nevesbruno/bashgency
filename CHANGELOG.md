@@ -2,6 +2,13 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.1] - 2026-05-27
+
+### Added
+
+- Brand SVG assets: `docs/bashgency-logo.svg` (animated cursor agent icon) and `docs/bashgency-wordmark.svg` (logotype + tagline)
+- README header: wordmark and animated icon replace plain-text title
+
 ## [1.3.0] - 2026-05-27
 
 ### Added

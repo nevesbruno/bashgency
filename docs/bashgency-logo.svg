@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 372" role="img" aria-labelledby="title desc">
+  <title id="title">Bashgency icon</title>
+  <desc id="desc">Pipeline: natural language flows through AI into a thin terminal cursor that writes shell aliases.</desc>
+
+  <defs>
+    <linearGradient id="screenGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f6feb" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#3fb950" stop-opacity="0.10"/>
+    </linearGradient>
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#58a6ff"/>
+      <stop offset="50%" stop-color="#bc8cff"/>
+      <stop offset="100%" stop-color="#3fb950"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#3fb950"/>
+    </marker>
+    <style>
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    </style>
+  </defs>
+
+  <rect width="480" height="372" rx="24" fill="#0d1117"/>
+
+  <rect x="36" y="44" width="408" height="312" rx="16" fill="#161b22" stroke="#30363d" stroke-width="3"/>
+  <rect x="36" y="44" width="408" height="312" rx="16" fill="url(#screenGlow)"/>
+
+  <circle cx="66" cy="72" r="7" fill="#ff5f57"/>
+  <circle cx="90" cy="72" r="7" fill="#febc2e"/>
+  <circle cx="114" cy="72" r="7" fill="#28c840"/>
+  <text x="240" y="76" text-anchor="middle" class="mono" fill="#8b949e" font-size="13" letter-spacing="1.5">bashgency</text>
+
+  <text x="56" y="118" class="mono" fill="#484f58" font-size="13">~</text>
+  <text x="72" y="118" class="mono" fill="#79c0ff" font-size="14" font-weight="700">&gt;</text>
+  <text x="88" y="118" class="mono" fill="#58a6ff" font-size="13">bash</text>
+  <text x="130" y="118" class="mono" fill="#3fb950" font-size="13" opacity="0.7">_</text>
+
+  <!-- pipeline baseline (y=178) -->
+  <!-- 1. speech in -->
+  <path d="M56 148 h88 a8 8 0 0 1 8 8 v24 a8 8 0 0 1 -8 8 h-52 l-12 12 v-12 h-24 a8 8 0 0 1 -8 -8 v-24 a8 8 0 0 1 8 -8 z" fill="#21262d" stroke="#484f58" stroke-width="2"/>
+  <line x1="68" y1="164" x2="132" y2="164" stroke="#8b949e" stroke-width="2" stroke-linecap="round"/>
+  <line x1="68" y1="174" x2="120" y2="174" stroke="#6e7681" stroke-width="2" stroke-linecap="round"/>
+  <line x1="68" y1="184" x2="126" y2="184" stroke="#484f58" stroke-width="2" stroke-linecap="round"/>
+  <path d="M152 178 h16" stroke="#484f58" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 2. chevron: input flows forward -->
+  <path d="M174 168 l14 10 l-14 10 v-6 l-8 -4 l8 -4 z" fill="#58a6ff" opacity="0.9"/>
+  <path d="M192 178 h10" stroke="#484f58" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 3. AI spark (two triangles = transform) -->
+  <path d="M212 166 l16 12 l-16 12 z" fill="#58a6ff" opacity="0.55"/>
+  <path d="M228 166 l16 12 l-16 12 z" fill="#bc8cff" opacity="0.75"/>
+  <path d="M216 162 l12 16 l12 -16 l-12 -10 z" fill="url(#sparkGrad)" filter="url(#softGlow)" opacity="0.95"/>
+  <path d="M248 178 h10" stroke="#484f58" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 4. chevron: AI output to cursor -->
+  <path d="M262 168 l14 10 l-14 10 v-6 l-8 -4 l8 -4 z" fill="#3fb950" opacity="0.9"/>
+  <path d="M280 178 h12" stroke="#484f58" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 5. thin cursor agent -->
+  <g transform="translate(298 178)">
+    <line x1="0" y1="-38" x2="0" y2="-56" stroke="#58a6ff" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="0" cy="-59" r="4" fill="#bc8cff"/>
+    <path d="M-10 -59 q10 -8 20 0" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+
+    <rect x="-7" y="-34" width="14" height="10" rx="2" fill="#21262d" stroke="#3fb950" stroke-width="1"/>
+    <text x="0" y="-27" text-anchor="middle" class="mono" fill="#3fb950" font-size="6.5" font-weight="700">AI</text>
+
+    <!-- thin vertical cursor bar -->
+    <rect x="-4" y="-22" width="8" height="44" rx="1.5" fill="#238636"/>
+    <rect x="-4" y="-22" width="8" height="44" rx="1.5" fill="#3fb950" opacity="0.95"/>
+
+    <!-- eyes peeking from sides -->
+    <circle cx="-10" cy="-2" r="5" fill="#f0f6fc"/>
+    <circle cx="10" cy="-2" r="5" fill="#f0f6fc"/>
+    <circle cx="-9" cy="-1" r="2" fill="#0d1117">
+      <animate attributeName="cx" values="-11;-11;-7;-7;-11" dur="3.8s" repeatCount="indefinite" keyTimes="0;0.395;0.5;0.895;1" calcMode="spline" keySplines="0 0 1 1;0.42 0 0.58 1;0 0 1 1;0.42 0 0.58 1"/>
+    </circle>
+    <circle cx="11" cy="-1" r="2" fill="#0d1117">
+      <animate attributeName="cx" values="9;9;13;13;9" dur="3.8s" repeatCount="indefinite" keyTimes="0;0.395;0.5;0.895;1" calcMode="spline" keySplines="0 0 1 1;0.42 0 0.58 1;0 0 1 1;0.42 0 0.58 1"/>
+    </circle>
+    <path d="M-5 10 q5 4 10 0" fill="none" stroke="#0d1117" stroke-width="1.5" stroke-linecap="round" opacity="0.35"/>
+  </g>
+
+  <!-- 6. chevron down + line into output -->
+  <path d="M298 200 v14" stroke="#3fb950" stroke-width="2" stroke-linecap="round"/>
+  <path d="M290 214 l8 10 l8 -10 h-5 l-3 -4 l-3 4 z" fill="#3fb950" opacity="0.85"/>
+
+  <!-- shell output -->
+  <rect x="56" y="248" width="368" height="88" rx="10" fill="#0d1117" stroke="#238636" stroke-width="2"/>
+  <text x="76" y="276" class="mono" fill="#7ee787" font-size="16" font-weight="700">ALIAS</text>
+  <text x="146" y="276" class="mono" fill="#8b949e" font-size="16">::</text>
+  <text x="172" y="276" class="mono" fill="#79c0ff" font-size="16">gst</text>
+  <text x="76" y="308" class="mono" fill="#ffa657" font-size="15">git status</text>
+  <rect x="172" y="292" width="10" height="18" fill="#3fb950" opacity="0.85">
+    <animate attributeName="opacity" values="0.85;0.12;0.85" dur="1.1s" repeatCount="indefinite"/>
+  </rect>
+
+</svg>

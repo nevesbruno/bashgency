@@ -1,6 +1,12 @@
-# Bashgency
+<p align="center">
+  <img src="docs/bashgency-logo.svg" alt="Bashgency icon — terminal cursor agent with animated eyes" width="220">
+  <br>
+  <img src="docs/bashgency-wordmark.svg" alt="bashgency — your shell agency" width="320">
+</p>
 
-CLI that generates shell aliases, functions, modules — and executes commands — via AI (DeepSeek API).
+<p align="center">
+  CLI that generates shell aliases, functions, modules — and executes commands — via AI (DeepSeek API).
+</p>
 
 ## What it is
 
@@ -224,4 +230,4 @@ Read [docs/developer-guide.md](./docs/developer-guide.md) before changing code. 
 
 ## Version
 
-See `VERSION`. Current: **1.4.0**.
+See `VERSION`. Current: **1.4.1**.

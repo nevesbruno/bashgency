@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 72" role="img" aria-labelledby="title desc">
+  <title id="title">Bashgency wordmark</title>
+  <desc id="desc">Bashgency logotype and tagline: your shell agency.</desc>
+
+  <style>
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+  </style>
+
+  <text x="240" y="38" text-anchor="middle" class="mono" fill="#f0f6fc" font-size="34" font-weight="700" letter-spacing="-1">bashgency</text>
+  <text x="240" y="58" text-anchor="middle" class="mono" fill="#8b949e" font-size="13" letter-spacing="2.4">YOUR SHELL AGENCY</text>
+</svg>

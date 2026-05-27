@@ -203,7 +203,7 @@ else
             break
         elif [ "$REPLY" = "0" ]; then
             echo ""
-            warn "Skipped. Add these lines manually:"
+            warn "Skipped. Add these lines manually if you need:"
             echo ""
             echo "    $SOURCE_LINE"
             echo "    $SOURCE_LINE2"
@@ -217,6 +217,19 @@ else
             printf "  ${RED}${BOLD}x${RESET} Invalid option: ${BOLD}$REPLY${RESET}\n"
         fi
     done
+fi
+divider
+
+# ---------------------------------------------------------------------------
+# Source in current session
+# ---------------------------------------------------------------------------
+if [ -f "$MODULE_PATH" ]; then
+    source "$MODULE_PATH"
+    info "Sourced bashgency in current shell"
+fi
+if [ -f "$CONFIG_DIR/aliases.sh" ]; then
+    source "$CONFIG_DIR/aliases.sh"
+    info "Sourced aliases in current shell"
 fi
 divider
 

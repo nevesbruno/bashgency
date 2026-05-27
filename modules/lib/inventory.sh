@@ -60,6 +60,33 @@ __inventory_color_for_type() {
     esac
 }
 
+# ---------- portable single-key read ----------
+# read -n1 (bash) vs read -k1 (zsh, needed under emulate sh)
+__bashgency_read_key() {
+    local var="" timeout=""
+    # Parse: [ -t N ] varname
+    if [ "$1" = "-t" ] && [ -n "$2" ]; then
+        timeout="$2"
+        var="$3"
+    else
+        var="$1"
+    fi
+
+    if [ -n "${ZSH_VERSION:-}" ]; then
+        if [ -n "$timeout" ]; then
+            read -s -k1 -t "$timeout" "$var"
+        else
+            read -s -k1 "$var"
+        fi
+    else
+        if [ -n "$timeout" ]; then
+            read -s -n1 -t "$timeout" "$var"
+        else
+            read -s -n1 "$var"
+        fi
+    fi
+}
+
 # ---------- iteration helper (posix-safe array iteration) ----------
 
 # Usage: __inventory_iter <callback_fn>
@@ -484,14 +511,14 @@ __bashgency_inventory_search_mode() {
 
 __bashgency_inventory_handle_input() {
     local key next dir
-    read -s -n1 key
+    __bashgency_read_key key
 
     case "$key" in
         j|J|$'\x1b')
             if [ "$key" = $'\x1b' ]; then
-                read -s -n1 -t 0.1 next
+                __bashgency_read_key -t 0.1 next
                 if [ "$next" = '[' ]; then
-                    read -s -n1 -t 0.1 dir
+                    __bashgency_read_key -t 0.1 dir
                     case "$dir" in
                         A)  [ "$__inventory_selected" -gt 0 ] && __inventory_selected=$((__inventory_selected - 1)) ;;
                         B)  [ "$__inventory_selected" -lt "$(( ${#__inventory_filtered[@]} - 1 ))" ] && __inventory_selected=$((__inventory_selected + 1)) ;;
@@ -529,7 +556,7 @@ __bashgency_inventory_handle_input() {
                 local real_idx="${__inventory_filtered[$__inventory_selected]}"
                 __bashgency_inventory_detail "$real_idx"
                 while true; do
-                    read -s -n1 detail_key
+                    __bashgency_read_key detail_key
                     case "$detail_key" in
                         ''|q|Q|$'\x1b') break ;;
                     esac

@@ -2,6 +2,12 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.2] - 2026-05-27
+
+### Changed
+
+- Logo icon: cursor agent eyes animate side-to-side with 1.5s hold and smooth easing between positions
+
 ## [1.4.1] - 2026-05-27
 
 ### Added

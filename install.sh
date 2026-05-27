@@ -181,7 +181,8 @@ add_source_block() {
 heading "> 4/4  ---  Shell integration"
 divider
 
-mapfile -t configs < <(detect_configs)
+configs=()
+while IFS= read -r line; do configs+=("$line"); done < <(detect_configs)
 
 local_available=()
 local_already=()

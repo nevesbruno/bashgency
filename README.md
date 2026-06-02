@@ -5,12 +5,14 @@
 </p>
 
 <p align="center">
-  CLI that generates shell aliases, functions, modules — and executes commands — via AI (DeepSeek API).
+  CLI that generates shell aliases, functions, modules and executes commands via AI (multi-provider).
 </p>
 
 ## What it is
 
-**Bashgency** turns natural-language descriptions into shell aliases, functions, modules, or direct command execution. It calls the DeepSeek API, shows a preview, and performs the action after your confirmation.
+**Bashgency** turns natural-language descriptions into shell aliases, functions, modules, or direct command execution. It calls your configured AI provider, shows a preview, and performs the action after your confirmation.
+
+**Tier 1 providers:** DeepSeek, OpenAI, Anthropic (Claude), Google Gemini. More connectors: see [`docs/adding-a-provider.md`](docs/adding-a-provider.md).
 
 ```
 User describes need
@@ -19,7 +21,7 @@ User describes need
    bashgency (CLI)
         |
         v
-  DeepSeek API  -->  shell code or command
+  AI provider API  -->  shell code or command
         |
         v
   preview + confirmation
@@ -49,10 +51,12 @@ git clone git@github.com:nevesbruno/bashgency.git ~/lab/bashgency
 
 ```bash
 bash ~/lab/bashgency/install.sh
-# Edit ~/.config/bashgency/env and set DEEPSEEK_API_KEY
+# Pick provider in the installer, or edit ~/.config/bashgency/env:
+#   BASHGENCY_PROVIDER="deepseek"   # or openai | anthropic | gemini
+#   DEEPSEEK_API_KEY="sk-..."       # matching key for the provider
 ```
 
-The installer will prompt you to add the `source` lines to your shell config (`.zshrc`, `.bashrc`, etc.) automatically.
+The installer prompts for **provider + API key** and can add `source` lines to your shell config (`.zshrc`, `.bashrc`, etc.) automatically.
 
 ### 3. Load in your shell
 
@@ -110,7 +114,7 @@ Example output:
 
 ```
 $ bashgency -r "list all listening ports with process"
-generating command via deepseek-chat...
+generating command via deepseek/deepseek-chat...
 
 +-- query ---+
   request : list all listening ports with process
@@ -179,7 +183,7 @@ With `BASHGENCY_TARGET` set, aliases and functions go to that file.
 | ---- | ---- |
 | `~/lab/bashgency/modules/bashgency-cli.sh` | Versioned source |
 | `~/lab/bashgency/modules/lib/run.sh` | Command execution module |
-| `~/.config/bashgency/env` | API key |
+| `~/.config/bashgency/env` | Provider + API keys |
 | `~/.config/bashgency/aliases.sh` | Generated aliases (default) |
 | `~/.config/bashgency/history` | Creation log (alias/function/module + COMMAND) |
 | `~/.config/bashgency/backups/` | Automatic backups |
@@ -195,13 +199,24 @@ Clone to `~/lab/bashgency` and add the `source` line to your shell.
 
 ```bash
 bash ~/lab/bashgency/install.sh
-# Edit ~/.config/bashgency/env
+# Set BASHGENCY_PROVIDER and the matching *_API_KEY in ~/.config/bashgency/env
 ```
 
 ### HTTP 401/403 error
 
 ```bash
+bashgency --configure
+# or re-run when prompted after an auth error (one automatic retry)
 bash ~/lab/bashgency/scripts/test_api.sh
+bash ~/lab/bashgency/scripts/test_api.sh openai
+```
+
+Set `BASHGENCY_NONINTERACTIVE=1` to disable reconfigure prompts in scripts.
+
+### Switch provider per command
+
+```bash
+bashgency -P anthropic -p "alias gst for git status" --preview
 ```
 
 ### Alias not available after apply
@@ -210,6 +225,15 @@ bash ~/lab/bashgency/scripts/test_api.sh
 source ~/.zshrc
 source ~/.config/bashgency/aliases.sh
 ```
+
+### Uninstall
+
+```bash
+./uninstall.sh
+# Menu: 1 = with repo (delete clone), 2 = without repo (default)
+```
+
+Non-interactive: `--keep-repo -y` or `--remove-repo -y`. Do not `source uninstall.sh`.
 
 ### Revert
 
@@ -230,4 +254,4 @@ Read [docs/developer-guide.md](./docs/developer-guide.md) before changing code. 
 
 ## Version
 
-See `VERSION`. Current: **1.4.2**.
+See `VERSION`. Current: **1.5.0**.

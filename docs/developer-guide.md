@@ -7,8 +7,10 @@
         |
         +-- bashgency()              # main CLI (entry point)
         +-- lib/
-        |     +-- api.sh             # DeepSeek HTTP calls
-        |     |     +-- __bashgency_call_api_raw()  # generic call
+        |     +-- providers/         # AI connector registry
+        |     |     +-- registry.sh, http.sh, openai_compat, anthropic, gemini
+        |     +-- api.sh             # prompts + __bashgency_call_api_raw (delegates)
+        |     |     +-- __bashgency_call_api_raw()  # -> __bashgency_provider_chat
         |     |     +-- __bashgency_call_api()      # alias wrapper
         |     +-- run.sh             # semantic command execution
         |     |     +-- __bashgency_run_flow()
@@ -66,7 +68,8 @@ No need to copy the module to `~/.config`; edit directly in the repo and re-`sou
 | `__bashgency_apply_changes` | Parser + disk write |
 | `__bashgency_aliases_path` | Resolve aliases file |
 | `__bashgency_extract_content` | Parse API response |
-| `__bashgency_call_api_raw` | Generic DeepSeek HTTP call |
+| `__bashgency_provider_chat` | HTTP via active provider (registry) |
+| `__bashgency_call_api_raw` | Delegates to provider chat |
 | `__bashgency_run_flow` | Run mode orchestrator |
 | `__bashgency_run_command` | Execute command + audit log |
 | `__bashgency_build_run_system_prompt` | Run mode system prompt |
@@ -96,19 +99,22 @@ Cleaned via `__bashgency_clean_run_output()` (strips markdown fences, empty line
 
 ## API integration
 
-**Endpoint:** `https://api.deepseek.com/chat/completions`
+Providers live in `modules/lib/providers/`. Tier 1: `deepseek`, `openai`, `anthropic`, `gemini`.
 
 **Context:** first 150 lines of the aliases file, filter `^(function|alias)`, max 20 entries (alias mode only).
 
-**Reuse:** `__bashgency_call_api_raw(system_prompt, user_prompt, model)` is shared by both alias and run flows.
+**Reuse:** `__bashgency_call_api_raw(system_prompt, user_prompt, model)` delegates to `__bashgency_provider_chat`.
+
+**Adding providers:** see [`adding-a-provider.md`](adding-a-provider.md).
 
 ## Variables
 
 | Variable | Default | Usage |
 | -------- | ------- | ----- |
 | `BASHGENCY_DIR` | `$HOME/.config/bashgency` | Config root |
+| `BASHGENCY_PROVIDER` | `deepseek` | Active AI provider |
 | `BASHGENCY_TARGET` | (empty) | Aliases file override |
-| `DEEPSEEK_API_KEY` | in `env` | API authentication |
+| `*_API_KEY` | in `env` | Per-provider authentication |
 
 ### `__bashgency_aliases_path` (priority)
 
@@ -133,12 +139,21 @@ BASHGENCY_TARGET="$HOME/lab/bash-stuffs/alias.sh"
 
 ### Switch AI provider
 
-Change `__bashgency_load_env`, curl in `api.sh`, and `__bashgency_extract_content`.
+Set in `~/.config/bashgency/env`:
+
+```bash
+BASHGENCY_PROVIDER="anthropic"
+ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Or per command: `bashgency -P openai -p "..."`.
 
 ## Local development
 
 ```bash
+bash ~/lab/bashgency/scripts/run_tests.sh
 bash ~/lab/bashgency/scripts/test_api.sh
+bash ~/lab/bashgency/scripts/test_api.sh gemini
 source ~/lab/bashgency/modules/bashgency-cli.sh
 bashgency -p "alias test for echo ok" --preview
 ```

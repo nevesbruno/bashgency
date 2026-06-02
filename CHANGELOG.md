@@ -2,6 +2,17 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.1] - 2026-05-27
+
+### Fixed
+
+- HTTP helper: pass headers as a newline string (not a local array name); fixes zsh `emulate sh` dropping `Authorization` and false 401 "governor"
+- `--configure` and post-reconfigure flow verify the API before reporting success or retrying
+
+### Added
+
+- `test/unit/http_zsh.bats`: regression test for zsh header forwarding
+
 ## [1.6.0] - 2026-05-27
 
 ### Added

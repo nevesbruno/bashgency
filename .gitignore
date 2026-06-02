@@ -5,3 +5,4 @@ env
 
 # Backups generated in dev
 backups/
+.cursor/

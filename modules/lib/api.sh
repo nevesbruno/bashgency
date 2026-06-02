@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# api.sh - DeepSeek API interaction
+# api.sh - AI provider prompts and chat delegation
 # Part of Bashgency
 
 if [ -n "${__BASHGENCY_API_LOADED:-}" ]; then
@@ -75,40 +75,42 @@ __bashgency_build_context() {
 __bashgency_call_api_raw() {
     local system_prompt="$1"
     local user_prompt="$2"
-    local model="${3:-deepseek-chat}"
+    local model="${3:-}"
+    local provider_override="${4:-}"
+    local provider=""
 
-    __bashgency_load_env || return 1
+    __bashgency_load_env "$provider_override" || return 1
 
-    local tmp_out
-    tmp_out=$(mktemp)
+    provider="${BASHGENCY_ACTIVE_PROVIDER:-}"
+    if [ -z "$provider" ]; then
+        provider=$(__bashgency_provider_resolve "${BASHGENCY_PROVIDER:-}") || return 1
+    fi
 
-    curl -s -w "\n%{http_code}" https://api.deepseek.com/chat/completions \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
-        -d "$(cat <<EOF
-{
-    "model": "$model",
-    "stream": false,
-    "messages": [
-        {"role": "system", "content": $(echo "$system_prompt" | jq -Rs .)},
-        {"role": "user", "content": $(echo "$user_prompt" | jq -Rs .)}
-    ],
-    "temperature": 0.3,
-    "max_tokens": 2000
-}
-EOF
-        )" > "$tmp_out" 2>/dev/null
+    if [ -z "$model" ]; then
+        model=$(__bashgency_provider_default_model "$provider")
+    fi
 
-    local response
-    response=$(cat "$tmp_out")
-    rm -f "$tmp_out"
-    printf '%s' "$response"
+    __bashgency_provider_chat "$provider" "$system_prompt" "$user_prompt" "$model"
 }
 
-# Call DeepSeek API for alias/function/module generation
+# Minimal live API ping (validates HTTP layer + credentials)
+__bashgency_verify_provider_api() {
+    local provider="${1:-${BASHGENCY_ACTIVE_PROVIDER:-}}"
+    local model response code
+
+    [ -n "$provider" ] || return 1
+    __bashgency_load_env "$provider" || return 1
+    model=$(__bashgency_provider_default_model "$provider")
+    response=$(__bashgency_provider_chat "$provider" "You are a test assistant." "Reply with exactly: ok" "$model")
+    code=$(printf '%s' "$response" | tail -n1 | tr -d '[:space:]')
+    [ "$code" = "200" ]
+}
+
+# Call active provider for alias/function/module generation
 __bashgency_call_api() {
     local prompt="$1"
-    local model="${2:-deepseek-chat}"
+    local model="${2:-}"
+    local provider_override="${3:-}"
 
     local system_prompt
     system_prompt=$(__bashgency_build_system_prompt)
@@ -119,7 +121,7 @@ __bashgency_call_api() {
     local user_prompt
     user_prompt=$(printf 'Create alias/function based on this description: %s\n\nExisting aliases in the file (style reference):\n%s' "$prompt" "$context")
 
-    __bashgency_call_api_raw "$system_prompt" "$user_prompt" "$model"
+    __bashgency_call_api_raw "$system_prompt" "$user_prompt" "$model" "$provider_override"
 }
 
 # Parse HTTP response into (http_code, body)

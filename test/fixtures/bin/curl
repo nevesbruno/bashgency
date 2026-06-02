@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Mock curl for unit tests (body + newline + http_code)
+code="${BASHGENCY_MOCK_HTTP_CODE:-200}"
+if [ -n "${BASHGENCY_MOCK_LOG_HEADERS:-}" ]; then
+    args=("$@")
+    i=0
+    while [ "$i" -lt "${#args[@]}" ]; do
+        if [ "${args[$i]}" = "-H" ] && [ $((i + 1)) -lt "${#args[@]}" ]; then
+            printf '%s\n' "${args[$((i + 1))]}" >> "${BASHGENCY_MOCK_HEADER_LOG:-/tmp/bashgency-mock-headers.log}"
+            i=$((i + 2))
+        else
+            i=$((i + 1))
+        fi
+    done
+fi
+if [ -n "${BASHGENCY_MOCK_BODY_FILE:-}" ] && [ -f "$BASHGENCY_MOCK_BODY_FILE" ]; then
+    cat "$BASHGENCY_MOCK_BODY_FILE"
+else
+    printf '%s' '{"choices":[{"message":{"content":"ALIAS :: x :: echo ok"}}]}'
+fi
+printf '\n%s' "$code"

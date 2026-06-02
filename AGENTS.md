@@ -4,14 +4,16 @@
 
 - Shell: bash/zsh
 - HTTP: curl + jq (+ python3 fallback for JSON)
-- API: DeepSeek (`https://api.deepseek.com/chat/completions`)
+- API: multi-provider via `modules/lib/providers/` (Tier 1: deepseek, openai, anthropic, gemini)
 
 ## Layout
 
 | Path | Role |
 | ---- | ---- |
 | `modules/bashgency-cli.sh` | Entry point (sources `lib/*.sh`) |
-| `modules/lib/` | 8 modules: colors, core, io, parser, ui, api, env, apply |
+| `modules/lib/` | core modules + `setup.sh`, `auth_errors.sh`, `providers/` |
+| `test/unit/` | bats unit tests (offline) |
+| `scripts/run_tests.sh` | run bats suite |
 | `~/.config/bashgency/env` | Secrets (never commit) |
 | `~/.config/bashgency/aliases.sh` | Default destination for generated aliases |
 | `~/.config/bashgency/modules/` | AI-generated shell modules |
@@ -23,7 +25,7 @@
 ```bash
 git clone <repo> ~/lab/bashgency
 bash ~/lab/bashgency/install.sh
-# Edit ~/.config/bashgency/env with DEEPSEEK_API_KEY
+# Edit ~/.config/bashgency/env: BASHGENCY_PROVIDER + matching *_API_KEY
 ```
 
 Typical integration via [bash-stuffs](https://github.com/nevesbruno/bash-stuffs) `alias.sh`:
@@ -42,9 +44,13 @@ source "$HOME/lab/bashgency/modules/bashgency-cli.sh"
 ## Quick tests
 
 ```bash
+bash ~/lab/bashgency/scripts/run_tests.sh
 source ~/lab/bashgency/modules/bashgency-cli.sh
 bashgency -p "alias x for echo ok" --preview
+bashgency -P openai -p "alias x for echo ok" --preview
+bashgency --configure
 bash ~/lab/bashgency/scripts/test_api.sh
+bash ~/lab/bashgency/scripts/test_api.sh anthropic
 ```
 
 ## Destination override

@@ -15,8 +15,28 @@ bashgency [OPTIONS] [freeform_prompt]
 | `-v` | `--preview` | Show code without applying | `false` |
 | `-f` | `--force` | Apply without confirmation | `false` |
 | `-y` | `--yes` | Auto-confirm command execution | `false` |
-| `-m` | `--model` | DeepSeek model | `deepseek-chat` |
+| `-P` | `--provider` | AI provider override | `BASHGENCY_PROVIDER` in env |
+| `-m` | `--model` | Model override | per provider (see table) |
+| | `--configure` | Interactive provider + API key setup | - |
 | `-h` | `--help` | Help | - |
+
+## Environment
+
+| Variable | Description |
+| -------- | ----------- |
+| `BASHGENCY_NONINTERACTIVE` | If set, suppresses reconfigure prompts on 401/403 |
+| `BASHGENCY_DIR` | Config directory (default `~/.config/bashgency`) |
+
+## Providers (Tier 1)
+
+| ID | Key env | Default model |
+| -- | ------- | ------------- |
+| `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-chat` |
+| `openai` | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| `anthropic` | `ANTHROPIC_API_KEY` | `claude-3-5-haiku-latest` |
+| `gemini` | `GEMINI_API_KEY` | `gemini-2.0-flash` |
+
+More providers: [`adding-a-provider.md`](adding-a-provider.md).
 
 ## Post-generation menu (alias mode)
 
@@ -32,7 +52,7 @@ bashgency [OPTIONS] [freeform_prompt]
 bashgency -r "list all text files containing lorem ipsum"
   |
   v
-generating command via deepseek-chat...
+generating command via deepseek/deepseek-chat...
   |
   v
 +-- query ---+
@@ -86,6 +106,7 @@ Raw shell command, no marker. Single line or chained with `&&`/`;`.
 ```
 ~/lab/bashgency/              # repository
 |-- modules/bashgency-cli.sh
+|-- modules/lib/providers/    # connector registry
 
 ~/.config/bashgency/        # runtime
 |-- env
@@ -99,7 +120,11 @@ Raw shell command, no marker. Single line or chained with `&&`/`;`.
 
 | Name | Where | Description |
 | ---- | ----- | ----------- |
-| `DEEPSEEK_API_KEY` | `~/.config/bashgency/env` | Required |
+| `BASHGENCY_PROVIDER` | `env` | Active provider: deepseek, openai, anthropic, gemini |
+| `DEEPSEEK_API_KEY` | `env` | DeepSeek authentication |
+| `OPENAI_API_KEY` | `env` | OpenAI authentication |
+| `ANTHROPIC_API_KEY` | `env` | Anthropic authentication |
+| `GEMINI_API_KEY` | `env` | Google Gemini authentication |
 | `BASHGENCY_DIR` | export | Config root override |
 | `BASHGENCY_TARGET` | `env` | Aliases file override |
 
@@ -112,30 +137,25 @@ Raw shell command, no marker. Single line or chained with `&&`/`;`.
 | `~/.zshrc` / `~/.bashrc` | If aliases file not referenced |
 | `history`, `backups/*` | Always |
 
-## DeepSeek API
-
-| Field | Value |
-| ----- | ----- |
-| URL | `https://api.deepseek.com/chat/completions` |
-| Auth | `Bearer $DEEPSEEK_API_KEY` |
-| Model | `deepseek-chat` |
-| Temperature | `0.3` |
-| Max tokens | `2000` |
-
 ## Examples
 
 ### Alias/function mode
 
 ```bash
 bashgency -p "alias gco for git checkout"
-bashgency -p "alias dps for docker ps" --preview
-bashgency -p "alias ll for ls -lha" --force
+bashgency -P openai -p "alias ll for ls -la" --preview
 ```
 
 ### Run mode
 
 ```bash
-bashgency -r "list all text files containing lorem ipsum"
-bashgency -r "find 5 largest files sorted by size" -y
-bashgency -r "show all listening ports with process names"
+bashgency -r "show disk usage sorted by size"
+bashgency -P gemini -r "list docker containers" -y
+```
+
+### Test API connectivity
+
+```bash
+bash ~/lab/bashgency/scripts/test_api.sh
+bash ~/lab/bashgency/scripts/test_api.sh anthropic
 ```

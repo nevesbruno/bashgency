@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# bashgency-cli.sh - Bashgency CLI (DeepSeek) - Entry Point
+# bashgency-cli.sh - Bashgency CLI (multi-provider) - Entry Point
 #
 # Dependencies:
 #   Required: curl, jq
@@ -9,7 +9,8 @@
 # Usage: source ~/lab/bashgency/modules/bashgency-cli.sh
 #
 # Configuration:
-#   echo 'DEEPSEEK_API_KEY="sk-your-key"' > ~/.config/bashgency/env
+#   cp env.example ~/.config/bashgency/env
+#   Set BASHGENCY_PROVIDER and matching API key (see env.example)
 #
 # Exported functions:
 #   bashgency               - main CLI
@@ -20,7 +21,7 @@
 #   io.sh      - File operations (backup, history)
 #   parser.sh  - AI output parsing
 #   ui.sh      - UI components (boxes, panels, menus)
-#   api.sh     - DeepSeek API interaction
+#   api.sh     - AI provider API interaction
 #   env.sh     - Shell/OS detection, first-run setup
 #   apply.sh      - Apply AI-generated aliases/functions/modules
 #   inventory.sh  - Interactive inventory browser
@@ -41,10 +42,13 @@ __BASHGENCY_LIB_DIR="$__BASHGENCY_DIR/lib"
 if [ -d "$__BASHGENCY_LIB_DIR" ]; then
   source "$__BASHGENCY_LIB_DIR/colors.sh"
   source "$__BASHGENCY_LIB_DIR/core.sh"
+  source "$__BASHGENCY_LIB_DIR/setup.sh"
+  source "$__BASHGENCY_LIB_DIR/providers/registry.sh"
   source "$__BASHGENCY_LIB_DIR/parser.sh"
   source "$__BASHGENCY_LIB_DIR/io.sh"
   source "$__BASHGENCY_LIB_DIR/ui.sh"
   source "$__BASHGENCY_LIB_DIR/api.sh"
+  source "$__BASHGENCY_LIB_DIR/auth_errors.sh"
   source "$__BASHGENCY_LIB_DIR/env.sh"
   source "$__BASHGENCY_LIB_DIR/apply.sh"
   source "$__BASHGENCY_LIB_DIR/inventory.sh"
@@ -62,17 +66,24 @@ bashgency() {
     local prompt=""
     local preview=false
     local force=false
-    local model="deepseek-chat"
+    local provider=""
+    local model=""
     local inventory_mode=false
     local run_mode=false
+    local configure_mode=false
     local main_choice=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --configure|configure|config)
+                configure_mode=true
+                shift
+                ;;
             -p|--prompt) prompt="$2"; shift 2 ;;
             -v|--preview) preview=true; shift ;;
             -f|--force) force=true; shift ;;
             -y|--yes) force=true; shift ;;
+            -P|--provider) provider="$2"; shift 2 ;;
             -m|--model) model="$2"; shift 2 ;;
             -r|--run) run_mode=true; shift ;;
             --run) run_mode=true; shift ;;  # zsh compat
@@ -97,8 +108,16 @@ bashgency() {
                 echo "   -y, --yes       Auto-confirm execution ${F_DIM}(run mode)${RESET}"
                 echo "   -r, --run       Run a command from natural language"
                 echo "   -i, --inventory Browse all created aliases/functions/modules"
-                echo "   -m, --model     DeepSeek model (default: deepseek-chat)"
+                echo "   -P, --provider  AI provider override (see table below)"
+                echo "   -m, --model     Model override (default: per active provider)"
+                echo "   --configure     Interactive provider + API key setup"
                 echo "   -h, --help      Show this help"
+                echo ""
+                echo " ${F_YELLOW}ENV:${RESET}"
+                echo "   BASHGENCY_NONINTERACTIVE=1  Suppress reconfigure prompts on auth errors"
+                echo ""
+                echo " ${F_YELLOW}PROVIDERS:${RESET}"
+                __bashgency_provider_list_display
                 echo ""
                 echo " ${F_MAGENTA}EXAMPLES:${RESET}"
                 echo "   bashgency"
@@ -114,6 +133,31 @@ bashgency() {
         esac
     done
 
+    if [ "$configure_mode" = true ]; then
+        __bashgency_ensure_dirs
+        if [ ! -f "$BASHGENCY_ENV" ]; then
+            local repo_root
+            repo_root="$(dirname "$__BASHGENCY_DIR")"
+            if [ -f "$repo_root/env.example" ]; then
+                cp "$repo_root/env.example" "$BASHGENCY_ENV"
+            else
+                touch "$BASHGENCY_ENV"
+            fi
+            chmod 600 "$BASHGENCY_ENV"
+        fi
+        __bashgency_configure_provider_interactive "$BASHGENCY_ENV" || return 1
+        __bashgency_load_env || return 1
+        if ! __bashgency_verify_provider_api; then
+            echo " ${F_YELLOW}[!]${RESET} Configuration saved, but the API test failed. Fix the key and run ${F_GREEN}bashgency --configure${RESET} again."
+            return 1
+        fi
+        echo " ${F_GREEN}[ + ]${RESET} API key verified."
+        if __bashgency_env_provider_configured "$BASHGENCY_ENV"; then
+            touch "$BASHGENCY_DIR/.initialized" 2>/dev/null || true
+        fi
+        return 0
+    fi
+
     # Inventory mode: shortcut to browser
     if [ "$inventory_mode" = true ]; then
         __bashgency_first_run_check || return $?
@@ -124,7 +168,7 @@ bashgency() {
     # Run mode: semantic command execution
     if [ "$run_mode" = true ]; then
         __bashgency_first_run_check || return $?
-        __bashgency_run_flow "$prompt" "$model" "$force"
+        __bashgency_run_flow "$prompt" "$model" "$force" "$provider"
         return $?
     fi
 
@@ -141,8 +185,9 @@ bashgency() {
             echo ""
             echo " ${F_CYAN}${BOLD}1${RESET}  Create a new alias, function, or module"
             echo " ${F_CYAN}${BOLD}2${RESET}  Browse inventory ${F_DIM}(view all created items)${RESET}"
-            echo " ${F_CYAN}${BOLD}3${RESET}  Help"
-            echo " ${F_CYAN}${BOLD}4${RESET}  Exit"
+            echo " ${F_CYAN}${BOLD}3${RESET}  Configure provider / API key"
+            echo " ${F_CYAN}${BOLD}4${RESET}  Help"
+            echo " ${F_CYAN}${BOLD}5${RESET}  Exit"
             echo ""
             echo -ne " ${F_MAGENTA}${BOLD}>>>${RESET} "
             read -r main_choice
@@ -154,7 +199,12 @@ bashgency() {
                     prompt=""
                     continue
                     ;;
-                3|h|H|"help"|"-h"|"--help")
+                3|c|C|configure|config)
+                    bashgency --configure || true
+                    prompt=""
+                    continue
+                    ;;
+                4|h|H|"help"|"-h"|"--help")
                     bashgency -h | head -60
                     echo ""
                     echo -ne " ${F_YELLOW}${BOLD}[Enter]${RESET} to return "
@@ -162,7 +212,7 @@ bashgency() {
                     prompt=""
                     continue
                     ;;
-                4|q|Q|exit|quit|sair)
+                5|q|Q|exit|quit|sair)
                     __bashgency_farewell
                     return 0
                     ;;
@@ -193,37 +243,43 @@ bashgency() {
         fi
 
         # --- API CALL ---
+        __bashgency_load_env "$provider" || return 1
+        if [ -z "$model" ]; then
+            model=$(__bashgency_provider_default_model "$BASHGENCY_ACTIVE_PROVIDER")
+        fi
+
         echo ""
-        printf " ${F_DIM}generating suggestion via %s...${RESET}" "$model"
+        printf " ${F_DIM}generating suggestion via %s/%s...${RESET}" "$BASHGENCY_ACTIVE_PROVIDER" "$model"
 
         local t0 t1 elapsed
         t0=$(date +%s)
 
-        local response http_code body ai_content
-        response=$(__bashgency_call_api "$prompt" "$model")
+        local response parsed http_code body ai_content hr
+        response=$(__bashgency_call_api "$prompt" "$model" "$provider")
         t1=$(date +%s)
         elapsed=$((t1 - t0))
 
         printf "\r\033[K"
 
-        # Parse HTTP response
-        http_code=$(printf '%s' "$response" | tail -n1 | tr -d '[:space:]')
-        if [[ "$http_code" =~ ^[0-9]{3}$ ]]; then
-            body=$(printf '%s' "$response" | sed '$d')
-        else
-            http_code="${response: -3}"
-            body="${response:0:${#response}-3}"
-        fi
+        parsed=$(__bashgency_parse_http_response "$response")
+        http_code=$(printf '%s' "$parsed" | head -n1)
+        body=$(printf '%s' "$parsed" | tail -n +2)
 
         if [ "$http_code" != "200" ]; then
-            echo ""
-            echo " ${F_RED}${BOLD}[ HTTP ERROR ${http_code} ]${RESET}"
-            echo "${F_YELLOW}Raw response (first 1500 chars):${RESET}"
-            echo "$body" | head -c 1500
-            echo ""
-            echo "$body" | jq -r '.error.message // "Unknown error (no .error.message in JSON)"' 2>/dev/null || echo "$body"
-            echo ""
-            return 1
+            __bashgency_handle_http_error "$http_code" "$body" "$BASHGENCY_ACTIVE_PROVIDER"
+            hr=$?
+            if [ "$hr" -eq 0 ]; then
+                response=$(__bashgency_call_api "$prompt" "$model" "$provider")
+                parsed=$(__bashgency_parse_http_response "$response")
+                http_code=$(printf '%s' "$parsed" | head -n1)
+                body=$(printf '%s' "$parsed" | tail -n +2)
+            fi
+            if [ "$http_code" != "200" ]; then
+                if [ "$hr" -eq 0 ]; then
+                    __bashgency_handle_http_error "$http_code" "$body" "$BASHGENCY_ACTIVE_PROVIDER" || return 1
+                fi
+                return 1
+            fi
         fi
 
         ai_content=$(__bashgency_extract_content "$body") || ai_content=""

@@ -20,6 +20,8 @@ __inventory_names=()        # entry name
 __inventory_descs=()        # description
 __inventory_codes=()        # code snippet
 __inventory_dates=()        # creation date
+__inventory_files=()        # source file path
+__inventory_lines=()        # source line number
 
 __inventory_filtered=()     # indices into the above arrays
 __inventory_selected=0      # currently selected index in filtered list
@@ -34,6 +36,8 @@ __inventory_clear_state() {
     __inventory_descs=()
     __inventory_codes=()
     __inventory_dates=()
+    __inventory_files=()
+    __inventory_lines=()
     __inventory_filtered=()
     __inventory_selected=0
     __inventory_filter=""
@@ -62,6 +66,7 @@ __inventory_color_for_type() {
 
 # ---------- portable single-key read ----------
 # read -n1 (bash) vs read -k1 (zsh, needed under emulate sh)
+# Normaliza Enter/CR para string vazia, independente do shell ou terminal.
 __bashgency_read_key() {
     local var="" timeout=""
     # Parse: [ -t N ] varname
@@ -72,19 +77,28 @@ __bashgency_read_key() {
         var="$1"
     fi
 
+    local key=""
     if [ -n "${ZSH_VERSION:-}" ]; then
         if [ -n "$timeout" ]; then
-            read -s -k1 -t "$timeout" "$var"
+            read -s -k1 -t "$timeout" key
         else
-            read -s -k1 "$var"
+            read -s -k1 key
         fi
     else
         if [ -n "$timeout" ]; then
-            read -s -n1 -t "$timeout" "$var"
+            read -s -n1 -t "$timeout" key
         else
-            read -s -n1 "$var"
+            read -s -n1 key
         fi
     fi
+
+    # Normaliza Enter/CR: bash read -n1 retorna ''; zsh read -k1 retorna
+    # $'\n' ou $'\r' (raw keycode). Unifica para ''.
+    case "$key" in
+        $'\n'|$'\r') key="" ;;
+    esac
+
+    eval "$var=\$key"
 }
 
 # ---------- iteration helper (posix-safe array iteration) ----------
@@ -159,10 +173,11 @@ __bashgency_inventory_parse_aliases_file() {
     local file="$1"
     [ ! -f "$file" ] && return
 
-    local current_desc="" current_type="" current_code=""
-    local in_function=false in_multiline=false
+    local current_desc="" current_type="" current_code="" current_lnum=""
+    local in_function=false in_multiline=false lnum=0
 
     while IFS= read -r line || [ -n "$line" ]; do
+        lnum=$((lnum + 1))
         if echo "$line" | grep -qE '^[[:space:]]*#'; then
             local comment
             comment=$(printf '%s' "$line" | sed 's/^[[:space:]]*#[[:space:]]*//')
@@ -186,6 +201,8 @@ __bashgency_inventory_parse_aliases_file() {
             __inventory_descs+=("${current_desc:-$(printf '%s' "$acode" | head -c 60)}")
             __inventory_codes+=("alias $aname=\"$acode\"")
             __inventory_dates+=("")
+            __inventory_files+=("$file")
+            __inventory_lines+=("$lnum")
             current_desc=""
             continue
         fi
@@ -199,6 +216,7 @@ __bashgency_inventory_parse_aliases_file() {
             in_function=true
             current_type="FUNCTION"
             current_code="$line"
+            current_lnum="$lnum"
             continue
         fi
 
@@ -210,6 +228,8 @@ __bashgency_inventory_parse_aliases_file() {
                 __inventory_descs+=("${current_desc:-$fname}")
                 __inventory_codes+=("$current_code")
                 __inventory_dates+=("")
+                __inventory_files+=("$file")
+                __inventory_lines+=("$current_lnum")
                 in_function=false
                 current_code=""
                 current_desc=""
@@ -230,9 +250,10 @@ __bashgency_inventory_extract_codes() {
         local type="${__inventory_types[$i]}"
 
         if [ "$type" != "MODULE" ]; then
-            local found=false in_target=false brace_depth=0 code=""
+            local found=false in_target=false brace_depth=0 code="" lnum=0
 
             while IFS= read -r line || [ -n "$line" ]; do
+                lnum=$((lnum + 1))
                 if [ "$in_target" = false ]; then
                     if [ "$type" = "ALIAS" ] && echo "$line" | grep -qE "^[[:space:]]*alias[[:space:]]+${name}="; then
                         code="$line"
@@ -263,6 +284,8 @@ __bashgency_inventory_extract_codes() {
 
             if [ "$found" = true ]; then
                 __inventory_codes[$i]="$code"
+                __inventory_files[$i]="$file"
+                __inventory_lines[$i]="$lnum"
             fi
         fi
 
@@ -288,6 +311,8 @@ __bashgency_inventory_scan_modules() {
         while [ "$j" -lt "$jcount" ]; do
             if [ "${__inventory_types[$j]}" = "MODULE" ] && [ "${__inventory_names[$j]}" = "$modname" ]; then
                 __inventory_codes[$j]=$(cat "$mod_file")
+                __inventory_files[$j]="$mod_file"
+                __inventory_lines[$j]=1
                 found=true
                 break
             fi
@@ -300,6 +325,8 @@ __bashgency_inventory_scan_modules() {
             __inventory_descs+=("Module: $modname")
             __inventory_codes+=("$(head -c 200 "$mod_file")")
             __inventory_dates+=("$(stat -c '%Y' "$mod_file" 2>/dev/null | xargs -I{} date -d '@{}' '+%Y-%m-%d' 2>/dev/null || echo '')")
+            __inventory_files+=("$mod_file")
+            __inventory_lines+=(1)
         fi
     done
 }
@@ -456,6 +483,8 @@ __bashgency_inventory_detail() {
     local desc="${__inventory_descs[$idx]}"
     local code="${__inventory_codes[$idx]}"
     local date="${__inventory_dates[$idx]}"
+    local file="${__inventory_files[$idx]:-}"
+    local line="${__inventory_lines[$idx]:-}"
     local badge
     badge=$(__inventory_badge "$type")
 
@@ -493,7 +522,13 @@ EOF
     fi
 
     echo ""
-    printf "  ${F_YELLOW}[Enter]${RESET} back to list  ${F_RED}[q]${RESET} quit\n"
+    if [ -n "$file" ] && [ -n "$line" ]; then
+        printf "  ${F_CYAN}Source${RESET}     ${F_WHITE}%s${RESET}:${F_YELLOW}%s${RESET}\n" "$file" "$line"
+        echo ""
+        printf "  ${F_YELLOW}[v]${RESET} open in vim  ${F_YELLOW}[Enter]${RESET} back to list  ${F_RED}[q]${RESET} quit\n"
+    else
+        printf "  ${F_YELLOW}[Enter]${RESET} back to list  ${F_RED}[q]${RESET} quit\n"
+    fi
     echo ""
 }
 
@@ -559,6 +594,14 @@ __bashgency_inventory_handle_input() {
                     __bashgency_read_key detail_key
                     case "$detail_key" in
                         ''|q|Q|$'\x1b') break ;;
+                        v|V)
+                            local vim_file="${__inventory_files[$real_idx]:-}"
+                            local vim_line="${__inventory_lines[$real_idx]:-}"
+                            if [ -n "$vim_file" ] && [ -n "$vim_line" ]; then
+                                vim "+$vim_line" "$vim_file"
+                                __bashgency_inventory_detail "$real_idx"
+                            fi
+                            ;;
                     esac
                 done
             fi

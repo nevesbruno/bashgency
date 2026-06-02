@@ -45,6 +45,11 @@ heading() { printf "\n${BOLD}${CYAN}%s${RESET}\n" "$*"; }
 sub()     { printf "  ${DIM}%s${RESET}\n" "$*"; }
 divider() { printf "  ${SEP}\n"; }
 
+export BASHGENCY_DIR="$CONFIG_DIR"
+export BASHGENCY_ENV="$CONFIG_DIR/env"
+# shellcheck source=modules/lib/setup.sh
+source "$ROOT/modules/lib/setup.sh"
+
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
@@ -68,45 +73,74 @@ sub "  '- backups/"
 divider
 
 # ---------------------------------------------------------------------------
-# Step 2/4 — API key
+# Step 2/4 — Provider + API key
 # ---------------------------------------------------------------------------
-heading "> 2/4  ---  API key"
+heading "> 2/4  ---  Provider + API key"
 divider
 
-needs_key=false
+needs_setup=false
+selected_provider=""
 
 if [ ! -f "$CONFIG_DIR/env" ]; then
     cp "$ROOT/env.example" "$CONFIG_DIR/env"
     chmod 600 "$CONFIG_DIR/env"
     info "Created ${BOLD}$CONFIG_DIR/env${RESET}"
-    needs_key=true
+    needs_setup=true
 else
     warn "${BOLD}$CONFIG_DIR/env${RESET} already exists"
-    current_key=$(grep -E '^DEEPSEEK_API_KEY=' "$CONFIG_DIR/env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')
-    if [ -z "$current_key" ] || [ "$current_key" = "sk-your-key-here" ]; then
-        needs_key=true
+    current_provider=$(__bashgency_env_get_provider "$CONFIG_DIR/env")
+    if __bashgency_provider_key_ok_for "$current_provider" "$CONFIG_DIR/env"; then
+        key_var=$(__bashgency_provider_key_var "$current_provider")
+        info "Provider ${BOLD}${current_provider}${RESET} configured (${key_var} set)"
     else
-        info "DEEPSEEK_API_KEY already set"
+        needs_setup=true
     fi
 fi
 
-if [ "$needs_key" = true ]; then
+if [ "$needs_setup" = true ]; then
     if [ -t 0 ]; then
         printf "\n"
-        printf "  ${CYAN}?${RESET} Enter your DeepSeek API key (${DIM}sk-...${RESET}): "
-        read -r user_key </dev/tty 2>/dev/null || read -r user_key
-        user_key="$(echo "$user_key" | tr -d '[:space:]')"
-    else
-        user_key=""
-    fi
+        printf "  ${CYAN}?${RESET} Select AI provider:\n\n"
+        printf "    ${BOLD}1${RESET}  DeepSeek\n"
+        printf "    ${BOLD}2${RESET}  OpenAI\n"
+        printf "    ${BOLD}3${RESET}  Anthropic\n"
+        printf "    ${BOLD}4${RESET}  Google Gemini\n"
+        printf "    ${BOLD}5${RESET}  Configure later\n\n"
+        printf "  ${CYAN}?${RESET} Choice [1-5]: "
+        read -r provider_choice </dev/tty 2>/dev/null || read -r provider_choice
 
-    if [ -n "$user_key" ]; then
-        # Replace the key in the env file
-        sed -i 's|^DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY="'"$user_key"'"|' "$CONFIG_DIR/env"
-        chmod 600 "$CONFIG_DIR/env"
-        info "DEEPSEEK_API_KEY saved to ${BOLD}$CONFIG_DIR/env${RESET}"
+        case "$provider_choice" in
+            1) selected_provider=deepseek ;;
+            2) selected_provider=openai ;;
+            3) selected_provider=anthropic ;;
+            4) selected_provider=gemini ;;
+            5) selected_provider="" ;;
+            *) selected_provider=deepseek ;;
+        esac
+
+        if [ -n "$selected_provider" ]; then
+            __bashgency_env_set_var BASHGENCY_PROVIDER "$selected_provider" "$CONFIG_DIR/env"
+            info "BASHGENCY_PROVIDER set to ${BOLD}${selected_provider}${RESET}"
+
+            key_var=$(__bashgency_provider_key_var "$selected_provider")
+            key_hint=$(__bashgency_provider_key_hint "$selected_provider")
+            printf "\n  ${CYAN}?${RESET} Enter your %s API key (${DIM}%s${RESET}): " "$selected_provider" "$key_hint"
+            read -r user_key </dev/tty 2>/dev/null || read -r user_key
+            user_key="${user_key//$'\r'/}"
+            user_key="${user_key#"${user_key%%[![:space:]]*}"}"
+            user_key="${user_key%"${user_key##*[![:space:]]}"}"
+
+            if [ -n "$user_key" ]; then
+                __bashgency_env_set_var "$key_var" "$user_key" "$CONFIG_DIR/env"
+                info "${key_var} saved to ${BOLD}$CONFIG_DIR/env${RESET}"
+            else
+                warn "No key entered. Edit ${BOLD}$CONFIG_DIR/env${RESET} later (set ${key_var})"
+            fi
+        else
+            warn "Skipped provider setup. Edit ${BOLD}$CONFIG_DIR/env${RESET} later (BASHGENCY_PROVIDER + matching API key)"
+        fi
     else
-        warn "No key entered. Edit ${BOLD}$CONFIG_DIR/env${RESET} later to add DEEPSEEK_API_KEY"
+        warn "Non-interactive install. Edit ${BOLD}$CONFIG_DIR/env${RESET} to set BASHGENCY_PROVIDER and matching API key"
     fi
 fi
 divider
@@ -267,24 +301,26 @@ echo ""
 divider
 
 if [ -f "$CONFIG_DIR/env" ]; then
-    final_key=$(grep -E '^DEEPSEEK_API_KEY=' "$CONFIG_DIR/env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')
-    if [ -n "$final_key" ] && [ "$final_key" != "sk-your-key-here" ]; then
+    final_provider=$(__bashgency_env_get_provider "$CONFIG_DIR/env")
+    if __bashgency_provider_key_ok_for "$final_provider" "$CONFIG_DIR/env"; then
         heading "API key is set. Ready to go!"
+        sub "Provider: ${BOLD}${final_provider}${RESET} (override per run: ${BOLD}bashgency -P <provider>${RESET})"
     else
         heading "Next steps"
         divider
         echo ""
-        printf "  ${BOLD}1.${RESET}  Edit ${CYAN}%s/env${RESET} and set your DEEPSEEK_API_KEY\n" "$CONFIG_DIR"
+        printf "  ${BOLD}1.${RESET}  Edit ${CYAN}%s/env${RESET} — set ${BOLD}BASHGENCY_PROVIDER${RESET} and matching API key\n" "$CONFIG_DIR"
         echo ""
         printf "  ${BOLD}2.${RESET}  Reload your shell:\n"
         printf "       ${DIM}source ~/.zshrc${RESET}  (or ${DIM}source ~/.bashrc${RESET})\n"
         echo ""
         printf "  ${BOLD}3.${RESET}  Test it:\n"
         printf "       ${DIM}bashgency -p 'alias gst for git status' --preview${RESET}\n"
+        printf "       ${DIM}bashgency -P deepseek -p '...' --preview${RESET}  ${DIM}(override provider)${RESET}\n"
         echo ""
         divider
     fi
 fi
 echo ""
-sub "Tip: set ${BOLD}BASHGENCY_TARGET${RESET} in env to write aliases elsewhere"
+sub "Tip: ${BOLD}BASHGENCY_PROVIDER${RESET} in env; override with ${BOLD}bashgency -P${RESET}; ${BOLD}BASHGENCY_TARGET${RESET} for alias destination"
 echo ""

@@ -2,6 +2,18 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.0] - 2026-06-02
+
+### Fixed
+
+- Enter key not working in inventory under zsh (normalize raw newline/CR to empty string)
+- `__bashgency_trunc` using bash-only substring expansion, causing zsh "unrecognized modifier" error
+
+### Added
+
+- Source file path and line number shown in inventory detail view
+- `v` key to open source file in vim at the exact line
+
 ## [1.6.1] - 2026-05-27
 
 ### Fixed

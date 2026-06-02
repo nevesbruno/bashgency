@@ -2,6 +2,27 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.0] - 2026-05-27
+
+### Added
+
+- `modules/lib/setup.sh`: unified env read/write and provider configuration wizard
+- `modules/lib/auth_errors.sh`: auth-aware HTTP errors (401/403) with optional reconfigure + one retry
+- `bashgency --configure` / menu option to set provider and API key interactively
+- Bats unit/integration tests under `test/`; `scripts/run_tests.sh`
+- Audit doc: `docs/auth-setup-audit/auth-setup-audit.md`
+
+### Fixed
+
+- `__bashgency_load_env` validates provider from `-P` override (not only `BASHGENCY_PROVIDER` in env)
+- `.initialized` marker only when API key is configured (not placeholder)
+- CRLF trimming on provider id from env file
+
+### Changed
+
+- `install.sh` uses `setup.sh` for atomic env updates
+- First-run may prompt for API key when TTY is available
+
 ## [1.5.0] - 2026-05-27
 
 ### Added

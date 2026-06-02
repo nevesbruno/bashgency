@@ -65,12 +65,13 @@ __bashgency_clean_run_output() {
 
 __bashgency_call_run_api() {
     local prompt="$1"
-    local model="${2:-deepseek-chat}"
+    local model="${2:-}"
+    local provider_override="${3:-}"
 
     local system_prompt
     system_prompt=$(__bashgency_build_run_system_prompt)
 
-    __bashgency_call_api_raw "$system_prompt" "$prompt" "$model"
+    __bashgency_call_api_raw "$system_prompt" "$prompt" "$model" "$provider_override"
 }
 
 # ---------- UI ----------
@@ -112,6 +113,7 @@ __bashgency_run_flow() {
     local prompt="$1"
     local model="$2"
     local force="$3"
+    local provider="${4:-}"
 
     # Interactive prompt if not provided
     if [ -z "$prompt" ]; then
@@ -125,32 +127,43 @@ __bashgency_run_flow() {
         fi
     fi
 
+    __bashgency_load_env "$provider" || return 1
+    if [ -z "$model" ]; then
+        model=$(__bashgency_provider_default_model "$BASHGENCY_ACTIVE_PROVIDER")
+    fi
+
     # Loading
-    printf " ${F_DIM}generating command via %s...${RESET}" "$model"
+    printf " ${F_DIM}generating command via %s/%s...${RESET}" "$BASHGENCY_ACTIVE_PROVIDER" "$model"
     local t0 t1 elapsed
     t0=$(date +%s)
 
-    local response http_code body ai_content command
-    response=$(__bashgency_call_run_api "$prompt" "$model")
+    local response parsed http_code body ai_content command
+    response=$(__bashgency_call_run_api "$prompt" "$model" "$provider")
     t1=$(date +%s)
     elapsed=$((t1 - t0))
 
     printf "\r\033[K"
 
-    # Parse HTTP
-    http_code=$(printf '%s' "$response" | tail -n1 | tr -d '[:space:]')
-    if [[ "$http_code" =~ ^[0-9]{3}$ ]]; then
-        body=$(printf '%s' "$response" | sed '$d')
-    else
-        http_code="${response: -3}"
-        body="${response:0:${#response}-3}"
-    fi
+    parsed=$(__bashgency_parse_http_response "$response")
+    http_code=$(printf '%s' "$parsed" | head -n1)
+    body=$(printf '%s' "$parsed" | tail -n +2)
 
     if [ "$http_code" != "200" ]; then
-        echo ""
-        echo " ${F_RED}${BOLD}[ HTTP ERROR ${http_code} ]${RESET}"
-        echo "$body" | head -c 1500
-        return 1
+        local hr=1
+        __bashgency_handle_http_error "$http_code" "$body" "$BASHGENCY_ACTIVE_PROVIDER"
+        hr=$?
+        if [ "$hr" -eq 0 ]; then
+            response=$(__bashgency_call_run_api "$prompt" "$model" "$provider")
+            parsed=$(__bashgency_parse_http_response "$response")
+            http_code=$(printf '%s' "$parsed" | head -n1)
+            body=$(printf '%s' "$parsed" | tail -n +2)
+        fi
+        if [ "$http_code" != "200" ]; then
+            if [ "$hr" -eq 0 ]; then
+                __bashgency_handle_http_error "$http_code" "$body" "$BASHGENCY_ACTIVE_PROVIDER" || return 1
+            fi
+            return 1
+        fi
     fi
 
     ai_content=$(__bashgency_extract_content "$body")

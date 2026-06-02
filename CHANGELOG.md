@@ -2,6 +2,24 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] - 2026-05-27
+
+### Added
+
+- Multi-provider connectors: DeepSeek, OpenAI, Anthropic, Google Gemini
+- `modules/lib/providers/`: registry, HTTP helper, and family modules (openai_compat, anthropic, gemini)
+- CLI flag `-P` / `--provider` to override `BASHGENCY_PROVIDER` per invocation
+- Install step 2/4: interactive provider selection and API key setup
+- `docs/adding-a-provider.md` for contributing new connectors
+- `scripts/test_api.sh` accepts optional provider ID argument
+
+### Changed
+
+- `BASHGENCY_PROVIDER` in `~/.config/bashgency/env` selects the active provider
+- `__bashgency_load_env` validates provider + matching API key via registry
+- `api.sh` delegates HTTP to `__bashgency_provider_chat`; parser branches by provider family
+- Default model is per-provider (override with `-m`)
+
 ## [1.4.2] - 2026-05-27
 
 ### Changed
@@ -50,19 +68,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - `modules/bashgency-cli.sh`: lib path resolution now works in zsh (`BASH_SOURCE` fallback to `$0` + guarded `source` with dir check)
-
-## [1.3.0] - 2026-05-27
-
-### Added
-
-- First-run detection: auto-detects shell (bash/zsh) and OS (linux/macos) on initial execution
-- Interactive setup prompt: guides user through config file, API key, and rc file configuration
-- Automatic rc sourcing: adds `source` lines for `bashgency-cli.sh` and `aliases.sh` to `.bashrc`/`.zshrc`
-- Marker file (`~/.config/bashgency/.initialized`) to skip first-run check on subsequent calls
-- `__bashgency_detect_shell()` - identifies current shell and rc file path
-- `__bashgency_detect_os()` - identifies operating system
-- `__bashgency_first_run_check()` - orchestrates setup flow
-- `__bashgency_escape_grep()` - helper for grep path escaping
 
 ## [1.2.1] - 2026-05-20
 

@@ -53,7 +53,9 @@ __bashgency_escape_grep() {
 }
 
 __bashgency_first_run_check() {
-    [ -f "$__BASHGENCY_INIT_MARKER" ] && return 0
+    if [ -f "$__BASHGENCY_INIT_MARKER" ] && __bashgency_env_provider_configured "$BASHGENCY_ENV"; then
+        return 0
+    fi
 
     local detected
     detected=$(__bashgency_detect_shell)
@@ -72,8 +74,8 @@ __bashgency_first_run_check() {
     if [ ! -f "$BASHGENCY_ENV" ]; then
         missing_items="${missing_items}  ${F_YELLOW}*${RESET} Config file (${F_BLUE}$BASHGENCY_ENV${RESET})\n"
         needs_setup=true
-    elif ! grep -q '^DEEPSEEK_API_KEY=' "$BASHGENCY_ENV" 2>/dev/null; then
-        missing_items="${missing_items}  ${F_YELLOW}*${RESET} API key in ${F_BLUE}$BASHGENCY_ENV${RESET}\n"
+    elif ! __bashgency_env_provider_configured "$BASHGENCY_ENV"; then
+        missing_items="${missing_items}  ${F_YELLOW}*${RESET} BASHGENCY_PROVIDER + matching API key in ${F_BLUE}$BASHGENCY_ENV${RESET}\n"
         needs_setup=true
     fi
 
@@ -105,7 +107,6 @@ __bashgency_first_run_check() {
         return 0
     fi
 
-    # --- First run screen ---
     clear
     __bashgency_box " FIRST RUN - SETUP REQUIRED "
     echo ""
@@ -122,13 +123,12 @@ __bashgency_first_run_check() {
     case "$response" in
         n|N|no|NO|nao|NAO)
             echo ""
-            echo " ${F_YELLOW}${BOLD}[!]${RESET} Setup skipped. Run manually with: ${F_GREEN}bash ~/lab/bashgency/install.sh${RESET}"
+            echo " ${F_YELLOW}${BOLD}[!]${RESET} Setup skipped. Run: ${F_GREEN}bashgency --configure${RESET} or ${F_GREEN}bash ~/lab/bashgency/install.sh${RESET}"
             echo ""
             return 1
             ;;
     esac
 
-    # --- Perform setup ---
     __bashgency_box " SETTING UP BASHGENCY "
 
     if [ ! -f "$BASHGENCY_ENV" ]; then
@@ -137,15 +137,23 @@ __bashgency_first_run_check() {
         if [ -f "$repo_root/env.example" ]; then
             cp "$repo_root/env.example" "$BASHGENCY_ENV"
         else
-            echo '# Bashgency config' > "$BASHGENCY_ENV"
-            echo 'DEEPSEEK_API_KEY="sk-your-key-here"' >> "$BASHGENCY_ENV"
+            cat > "$BASHGENCY_ENV" <<'EOF'
+# Bashgency config
+BASHGENCY_PROVIDER="deepseek"
+DEEPSEEK_API_KEY="sk-your-key-here"
+OPENAI_API_KEY="sk-your-key-here"
+ANTHROPIC_API_KEY="sk-ant-your-key-here"
+GEMINI_API_KEY="AIza-your-key-here"
+EOF
         fi
         chmod 600 "$BASHGENCY_ENV"
         echo " ${F_GREEN}${BOLD}[ + ]${RESET} Created ${F_BLUE}$BASHGENCY_ENV${RESET}"
-        echo " ${F_YELLOW}${BOLD}[!]${RESET} Edit it and add your DeepSeek API key:"
-    elif ! grep -q '^DEEPSEEK_API_KEY=' "$BASHGENCY_ENV" 2>/dev/null; then
-        echo "DEEPSEEK_API_KEY='sk-your-key-here'" >> "$BASHGENCY_ENV"
-        echo " ${F_YELLOW}${BOLD}[*]${RESET} Added API key placeholder to ${F_BLUE}$BASHGENCY_ENV${RESET}"
+    fi
+
+    if ! __bashgency_env_provider_configured "$BASHGENCY_ENV" ] && [ -t 0 ]; then
+        __bashgency_configure_provider_interactive "$BASHGENCY_ENV" || true
+    elif ! __bashgency_env_provider_configured "$BASHGENCY_ENV"; then
+        echo " ${F_YELLOW}${BOLD}[!]${RESET} Set ${F_CYAN}BASHGENCY_PROVIDER${RESET} and matching API key in ${F_BLUE}$BASHGENCY_ENV${RESET}"
     fi
 
     if [ ! -f "$alias_path" ]; then
@@ -164,7 +172,7 @@ __bashgency_first_run_check() {
         } >> "$rc_file"
 
         local bashgency_script_path
-        bashgency_script_path="$(__bashgency_module_path)"
+        bashgency_script_path="$(__bashgency_cli_path)"
         if ! grep -qF "$bashgency_script_path" "$rc_file" 2>/dev/null; then
             echo "[ -f \"$bashgency_script_path\" ] && source \"$bashgency_script_path\"" >> "$rc_file"
             echo " ${F_GREEN}${BOLD}[ + ]${RESET} Added bashgency source line to ${F_BLUE}$rc_file${RESET}"
@@ -180,7 +188,9 @@ __bashgency_first_run_check() {
         } >> "$rc_file"
     fi
 
-    touch "$__BASHGENCY_INIT_MARKER"
+    if __bashgency_env_provider_configured "$BASHGENCY_ENV"; then
+        touch "$__BASHGENCY_INIT_MARKER"
+    fi
     echo " ${F_GREEN}${BOLD}[ + ]${RESET} Initialization complete"
 
     echo ""
@@ -191,10 +201,13 @@ __bashgency_first_run_check() {
     echo " ${F_YELLOW}${BOLD}[~]${RESET} Reload your shell or run:"
     echo "    ${F_GREEN}source $rc_file${RESET}"
     echo ""
-    if ! grep -q '^DEEPSEEK_API_KEY=' "$BASHGENCY_ENV" 2>/dev/null \
-        || grep -q 'sk-your-key' "$BASHGENCY_ENV" 2>/dev/null; then
-        echo " ${F_YELLOW}${BOLD}[!]${RESET} Don't forget to add your real API key in ${F_BLUE}$BASHGENCY_ENV${RESET}"
-        echo "    ${F_CYAN}DEEPSEEK_API_KEY=\"sk-your-key\"${RESET}"
+    if ! __bashgency_env_provider_configured "$BASHGENCY_ENV"; then
+        local active_provider active_key_var
+        active_provider=$(__bashgency_env_get_provider "$BASHGENCY_ENV")
+        active_key_var=$(__bashgency_provider_key_var "$active_provider")
+        echo " ${F_YELLOW}${BOLD}[!]${RESET} Add your API key: ${F_GREEN}bashgency --configure${RESET}"
+        echo "    ${F_CYAN}BASHGENCY_PROVIDER=\"${active_provider}\"${RESET}"
+        echo "    ${F_CYAN}${active_key_var}=\"...\"${RESET}"
         echo ""
     fi
 

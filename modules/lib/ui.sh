@@ -15,7 +15,7 @@ __bashgency_trunc() {
     local text="$1"
     local max="$2"
     if [ "${#text}" -gt "$max" ]; then
-        printf '%s' "${text:0:max-3}..."
+        printf '%.*s...' "$((max - 3))" "$text"
     else
         printf '%s' "$text"
     fi

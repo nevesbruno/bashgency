@@ -2,6 +2,12 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.0] - 2026-06-03
+
+### Added
+
+- Run command option (2) in interactive main menu, exits after execution so stdout stays visible
+
 ## [1.7.0] - 2026-06-02
 
 ### Fixed

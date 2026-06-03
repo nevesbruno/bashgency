@@ -254,4 +254,4 @@ Read [docs/developer-guide.md](./docs/developer-guide.md) before changing code. 
 
 ## Version
 
-See `VERSION`. Current: **1.5.0**.
+See `VERSION`. Current: **1.8.0**.

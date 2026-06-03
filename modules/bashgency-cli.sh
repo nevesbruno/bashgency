@@ -184,27 +184,33 @@ bashgency() {
             echo " ${F_GREEN}What do you want to do?${RESET}"
             echo ""
             echo " ${F_CYAN}${BOLD}1${RESET}  Create a new alias, function, or module"
-            echo " ${F_CYAN}${BOLD}2${RESET}  Browse inventory ${F_DIM}(view all created items)${RESET}"
-            echo " ${F_CYAN}${BOLD}3${RESET}  Configure provider / API key"
-            echo " ${F_CYAN}${BOLD}4${RESET}  Help"
-            echo " ${F_CYAN}${BOLD}5${RESET}  Exit"
+            echo " ${F_CYAN}${BOLD}2${RESET}  Run command from description ${F_DIM}(semantic shell)${RESET}"
+            echo " ${F_CYAN}${BOLD}3${RESET}  Browse inventory ${F_DIM}(view all created items)${RESET}"
+            echo " ${F_CYAN}${BOLD}4${RESET}  Configure provider / API key"
+            echo " ${F_CYAN}${BOLD}5${RESET}  Help"
+            echo " ${F_CYAN}${BOLD}6${RESET}  Exit"
             echo ""
             echo -ne " ${F_MAGENTA}${BOLD}>>>${RESET} "
             read -r main_choice
             echo ""
             case "$main_choice" in
-                2|b|B|inventory|"browse"|"list"|"ls")
+                2|r|R|run|"rodar"|"executar")
+                    __bashgency_first_run_check || return $?
+                    __bashgency_run_flow "" "" "" ""
+                    return $?
+                    ;;
+                3|b|B|inventory|"browse"|"list"|"ls")
                     __bashgency_first_run_check || return $?
                     __bashgency_inventory
                     prompt=""
                     continue
                     ;;
-                3|c|C|configure|config)
+                4|c|C|configure|config)
                     bashgency --configure || true
                     prompt=""
                     continue
                     ;;
-                4|h|H|"help"|"-h"|"--help")
+                5|h|H|"help"|"-h"|"--help")
                     bashgency -h | head -60
                     echo ""
                     echo -ne " ${F_YELLOW}${BOLD}[Enter]${RESET} to return "
@@ -212,7 +218,7 @@ bashgency() {
                     prompt=""
                     continue
                     ;;
-                5|q|Q|exit|quit|sair)
+                6|q|Q|exit|quit|sair)
                     __bashgency_farewell
                     return 0
                     ;;
